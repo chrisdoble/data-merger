@@ -11,6 +11,7 @@ def load(path: str, placeholder: float) -> np.ndarray:
     :param path: The path to the profilometer data.
     :param placeholder: If values in the file are equal to the most negative
         32-bit float they will be replaced with this value.
+    :return: The profilometer data contained within the file at `path`.
     """
     with open(path) as f:
         lines = f.read().splitlines()
