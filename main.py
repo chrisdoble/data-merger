@@ -12,6 +12,7 @@ if __name__ == "__main__":
     wizard = QtWidgets.QWizard()
     wizard.addPage(ElementalDataPage())
     wizard.addPage(BrillouinDataPage())
+    wizard.addPage(ProfilometerDataPage())
     wizard.setWindowTitle(config.PROGRAM_NAME)
     wizard.show()
 

@@ -4,6 +4,7 @@ from pewlib.io.npz import load
 from PySide6 import QtWidgets
 
 from datamerger import config
+from datamerger.util import show_critical_message_box
 from datamerger.widget import PathSelectWidget
 
 logger = logging.getLogger(__name__)
@@ -39,14 +40,8 @@ class ElementalDataPage(QtWidgets.QWizardPage):
             load(self.__path_select_widget.path)
             return True
         except:
-            logger.exception("Unable to load .npz file")
-
-            QtWidgets.QMessageBox.critical(
-                self,
-                config.PROGRAM_NAME,
-                "Unable to load pew² .npz file. Check log for more information.",
-                QtWidgets.QMessageBox.StandardButton.Ok,
-                QtWidgets.QMessageBox.StandardButton.Ok,
+            logger.exception("Unable to load elemental .npz file")
+            show_critical_message_box(
+                self, "Unable to load pew² .npz file. Check log for more information."
             )
-
             return False

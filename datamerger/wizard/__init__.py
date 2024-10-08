@@ -1,2 +1,3 @@
 from .brillouin_data_page import BrillouinDataPage
 from .elemental_data_page import ElementalDataPage
+from .profilometer_data_page import ProfilometerDataPage

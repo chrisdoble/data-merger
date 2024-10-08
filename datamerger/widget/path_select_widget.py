@@ -37,7 +37,7 @@ class PathSelectWidget(QtWidgets.QWidget):
         layout.addWidget(self.__button)
         self.setLayout(layout)
 
-    def get_path(self) -> str | None:
+    def get_path(self) -> str:
         return self.__path
 
     def set_path(self, path: str) -> None:
