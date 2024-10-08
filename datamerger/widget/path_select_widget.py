@@ -11,21 +11,33 @@ class PathSelectWidget(QtWidgets.QWidget):
     path_changed = QtCore.Signal(str)
 
     def __init__(
-        self, name_filter: str, parent: QtWidgets.QWidget | None = None
+        self,
+        name_filter: str,
+        accept_mode: QtWidgets.QFileDialog.AcceptMode = QtWidgets.QFileDialog.AcceptMode.AcceptOpen,
+        file_mode: QtWidgets.QFileDialog.FileMode = QtWidgets.QFileDialog.FileMode.AnyFile,
+        parent: QtWidgets.QWidget | None = None,
     ) -> None:
         """Initialises the widget.
 
-        :param name_filter: The filter to apply to files, e.g. "CPP files (*.cpp *.h)".
+        :param name_filter: The filter to apply to files, e.g.
+            "CPP files (*.cpp *.h)".
+        :param accept_mode: The accept mode for the `QFileDialog`. Used to
+            control if it's an "open" or "save" dialog.
+        :param file_mode: The file mode for the `QFileDialog`. Used to control
+            the kinds of paths that may be selected (existing, new, etc.).
         :param parent: The parent of this widget.
         """
         super().__init__(parent)
 
+        # Arguments for the QFileDialog.
+        self.__accept_mode = accept_mode
+        self.__file_mode = file_mode
         self.__name_filter = name_filter
 
         # The text box that shows that path.
         self.__line_edit = QtWidgets.QLineEdit()
         self.__line_edit.setPlaceholderText("Path to file...")
-        self.__line_edit.textChanged.connect(self.__on_line_edit_text_changed)
+        self.__line_edit.setReadOnly(True)
 
         # The button that opens the file dialog.
         self.__button = QtWidgets.QPushButton("Select file")
@@ -54,7 +66,8 @@ class PathSelectWidget(QtWidgets.QWidget):
     @QtCore.Slot()
     def __on_button_clicked(self) -> None:
         dialog = QtWidgets.QFileDialog(self)
-        dialog.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFile)
+        dialog.setAcceptMode(self.__accept_mode)
+        dialog.setFileMode(self.__file_mode)
         dialog.setNameFilter(self.__name_filter)
         dialog.exec()
 

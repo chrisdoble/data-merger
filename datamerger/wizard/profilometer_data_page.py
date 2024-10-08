@@ -21,7 +21,7 @@ class ProfilometerDataPage(QtWidgets.QWizardPage):
         super().__init__(parent)
 
         self.setTitle("Profilometer data")
-        self.setSubTitle("Select a profilometer .txt file or click continue to skip.")
+        self.setSubTitle("Select a profilometer .txt file or click next to skip.")
 
         self.__path_select_widget = PathSelectWidget("Profilometer files (*.txt)")
         self.registerField("profilometer_path", self.__path_select_widget, "path")

@@ -3,17 +3,11 @@ import sys
 from PySide6 import QtWidgets
 
 from datamerger import config
-from datamerger.wizard import *
+from datamerger.wizard import Wizard
 
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication([])
-
-    wizard = QtWidgets.QWizard()
-    wizard.addPage(ElementalDataPage())
-    wizard.addPage(BrillouinDataPage())
-    wizard.addPage(ProfilometerDataPage())
-    wizard.setWindowTitle(config.PROGRAM_NAME)
+    wizard = Wizard()
     wizard.show()
-
     sys.exit(app.exec())
