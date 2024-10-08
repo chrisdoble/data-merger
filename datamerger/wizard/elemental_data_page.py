@@ -26,17 +26,17 @@ class ElementalDataPage(QtWidgets.QWizardPage):
             " select the pew² .npz file you wish to add to."
         )
 
-        self.path_select_widget = PathSelectWidget()
-        self.path_select_widget.path_changed.connect(self.completeChanged)
-        self.registerField("npz_path*", self.path_select_widget, "path")
+        self.__path_select_widget = PathSelectWidget("pew² files (*.npz)")
+        self.__path_select_widget.path_changed.connect(self.completeChanged)
+        self.registerField("npz_path*", self.__path_select_widget, "path")
 
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.path_select_widget)
+        layout.addWidget(self.__path_select_widget)
         self.setLayout(layout)
 
     def validatePage(self) -> bool:
         try:
-            load(self.path_select_widget.path)
+            load(self.__path_select_widget.path)
             return True
         except:
             logger.exception("Unable to load .npz file")

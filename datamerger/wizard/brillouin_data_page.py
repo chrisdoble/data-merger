@@ -1,15 +1,20 @@
 from PySide6 import QtWidgets
 
+from datamerger.widget import PathSelectWidget
+
 
 class BrillouinDataPage(QtWidgets.QWizardPage):
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
 
-        self.__label = QtWidgets.QLabel()
+        self.setTitle("Brillouin data")
+        self.setSubTitle("Select a Brillouin .xlsx file or click continue to skip.")
+
+        self.__path_select_widget = PathSelectWidget("Brillouin files (*.xlsx)")
 
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.__label)
+        layout.addWidget(self.__path_select_widget)
         self.setLayout(layout)
 
-    def initializePage(self) -> None:
-        self.__label.setText(self.field("npz_path"))
+    def cleanupPage(self) -> None:
+        self.__path_select_widget.set_path("")
