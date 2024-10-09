@@ -1,4 +1,4 @@
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 
 class PathSelectWidget(QtWidgets.QWidget):
@@ -35,18 +35,19 @@ class PathSelectWidget(QtWidgets.QWidget):
         self.__name_filter = name_filter
 
         # The text box that shows that path.
-        self.__line_edit = QtWidgets.QLineEdit()
+        self.__line_edit = ClickableReadOnlyLineEdit(self)
+        self.__line_edit.clicked.connect(self.__show_file_dialog)
         self.__line_edit.setPlaceholderText("Path to file...")
-        self.__line_edit.setReadOnly(True)
 
         # The button that opens the file dialog.
         self.__button = QtWidgets.QPushButton("Select file")
-        self.__button.clicked.connect(self.__on_button_clicked)
+        self.__button.clicked.connect(self.__show_file_dialog)
 
         # Place the widgets side by side with the text box expanding.
         layout = QtWidgets.QHBoxLayout()
         layout.addWidget(self.__line_edit, 1)
         layout.addWidget(self.__button)
+        layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
 
     def get_path(self) -> str:
@@ -64,16 +65,30 @@ class PathSelectWidget(QtWidgets.QWidget):
         self.path_changed.emit(text)
 
     @QtCore.Slot()
-    def __on_button_clicked(self) -> None:
+    def __show_file_dialog(self) -> None:
         dialog = QtWidgets.QFileDialog(self)
         dialog.setAcceptMode(self.__accept_mode)
         dialog.setFileMode(self.__file_mode)
         dialog.setNameFilter(self.__name_filter)
-        dialog.exec()
 
-        selected_files = dialog.selectedFiles()
-        if len(selected_files) == 1:
-            [path] = selected_files
-            self.__line_edit.setText(path)
-            self.__path = path
-            self.path_changed.emit(path)
+        if dialog.exec() == QtWidgets.QFileDialog.DialogCode.Accepted:
+            selected_files = dialog.selectedFiles()
+            if len(selected_files) == 1:
+                [path] = selected_files
+                self.__line_edit.setText(path)
+                self.__path = path
+                self.path_changed.emit(path)
+
+
+class ClickableReadOnlyLineEdit(QtWidgets.QLineEdit):
+    """A read-only `QLineEdit` that emits a `clicked` signal on click."""
+
+    # Emitted when the widget is clicked.
+    clicked = QtCore.Signal()
+
+    def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setReadOnly(True)
+
+    def mousePressEvent(self, _event: QtGui.QMouseEvent) -> None:
+        self.clicked.emit()
