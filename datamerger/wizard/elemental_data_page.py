@@ -1,7 +1,7 @@
 import logging
 
 from pewlib.io.npz import load
-from PySide6 import QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from datamerger import config
 from datamerger.util import show_critical_message_box

@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class BrillouinDataPage(QtWidgets.QWizardPage):
-    """The second page of the wizard that collects information about the
+    """The third page of the wizard that collects information about the
     Brillouin data to use throughout the rest of the wizard (if any).
 
     This data is in the form of an .xlsx file.

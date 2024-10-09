@@ -13,8 +13,8 @@ class Wizard(QtWidgets.QWizard):
         super().__init__(parent)
 
         self.addPage(ElementalDataPage())
-        self.addPage(BrillouinDataPage())
         self.addPage(ProfilometerDataPage())
+        self.addPage(BrillouinDataPage())
         self.addPage(OutputPage())
         self.addPage(DonePage())
 
