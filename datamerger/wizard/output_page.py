@@ -10,7 +10,7 @@ class OutputPage(QtWidgets.QWizardPage):
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
 
-        self.setTitle("Output")
+        self.setTitle("Select output")
         self.setSubTitle(
             "Select where you would like the final pew² .npz file to be saved."
             "\n\nNote that if you select the original file it will be overridden."
