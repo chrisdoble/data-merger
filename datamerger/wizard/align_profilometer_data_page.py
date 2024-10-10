@@ -3,7 +3,7 @@ from pewlib.io.npz import load
 from PySide6 import QtGui, QtWidgets
 
 from datamerger.widget import DataAlignmentView, turbo_color_table
-from .load_data_page import LASER_FIELD_NAME
+from .load_data_page import LASER_FIELD_NAME, PROFILOMETER_DATA_FIELD_NAME
 
 
 class AlignProfilometerDataPage(QtWidgets.QWizardPage):
@@ -13,20 +13,25 @@ class AlignProfilometerDataPage(QtWidgets.QWizardPage):
     This page isn't shown if the user doesn't select profilometer data.
     """
 
+    __data_alignment_view: DataAlignmentView | None = None
+    __layout: QtWidgets.QVBoxLayout
+
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
 
         self.setTitle("Align profilometer data")
         self.setSubTitle("Align the profilometer data with the elemental data.")
 
-        self.__data_alignment_view = DataAlignmentView(self)
-
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.__data_alignment_view)
-        self.setLayout(layout)
+        self.__layout = QtWidgets.QVBoxLayout()
+        self.setLayout(self.__layout)
 
     def initializePage(self) -> None:
+        assert self.__data_alignment_view is None
         laser = self.field(LASER_FIELD_NAME)
+        sized_data = self.field(PROFILOMETER_DATA_FIELD_NAME)
+        self.__data_alignment_view = DataAlignmentView(laser, sized_data, self)
+        self.__layout.addWidget(self.__data_alignment_view)
+
         data = laser.get(laser.elements[0])
 
         # Determine the minimum and maximum values (ignoring NaNs).
@@ -53,3 +58,9 @@ class AlignProfilometerDataPage(QtWidgets.QWizardPage):
         pixmap = QtGui.QPixmap.fromImage(image)
         pixmap_item = self.__data_alignment_view.scene().addPixmap(pixmap)
         self.__data_alignment_view.centerOn(pixmap_item)
+
+    def cleanupPage(self) -> None:
+        self.__layout.takeAt(0)
+        if self.__data_alignment_view is not None:
+            self.__data_alignment_view.deleteLater()
+            self.__data_alignment_view = None
