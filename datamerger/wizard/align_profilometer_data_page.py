@@ -2,7 +2,7 @@ import numpy as np
 from pewlib.io.npz import load
 from PySide6 import QtGui, QtWidgets
 
-from datamerger.widget import GraphicsView, turbo_color_table
+from datamerger.widget import DataAlignmentView, turbo_color_table
 from .load_data_page import LASER_FIELD_NAME
 
 
@@ -19,10 +19,10 @@ class AlignProfilometerDataPage(QtWidgets.QWizardPage):
         self.setTitle("Align profilometer data")
         self.setSubTitle("Align the profilometer data with the elemental data.")
 
-        self.__graphics_view = GraphicsView(self)
+        self.__data_alignment_view = DataAlignmentView(self)
 
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.__graphics_view)
+        layout.addWidget(self.__data_alignment_view)
         self.setLayout(layout)
 
     def initializePage(self) -> None:
@@ -51,5 +51,5 @@ class AlignProfilometerDataPage(QtWidgets.QWizardPage):
         image.setColorCount(len(turbo_color_table))
 
         pixmap = QtGui.QPixmap.fromImage(image)
-        pixmap_item = self.__graphics_view.scene().addPixmap(pixmap)
-        self.__graphics_view.centerOn(pixmap_item)
+        pixmap_item = self.__data_alignment_view.scene().addPixmap(pixmap)
+        self.__data_alignment_view.centerOn(pixmap_item)
