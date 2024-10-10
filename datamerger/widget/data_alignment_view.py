@@ -7,6 +7,7 @@ class DataAlignmentView(QtWidgets.QGraphicsView):
 
         self.setBackgroundBrush(QtCore.Qt.GlobalColor.black)
         self.setDragMode(QtWidgets.QGraphicsView.DragMode.ScrollHandDrag)
+        self.setMinimumSize(640, 480)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
