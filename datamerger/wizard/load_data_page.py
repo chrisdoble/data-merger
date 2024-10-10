@@ -26,10 +26,13 @@ class LoadDataPage(QtWidgets.QWizardPage):
     """
 
     # Elemental data loaded from a pew² .npz file.
-    __laser: Laser | None
+    __laser: Laser | None = None
 
     # Profilometer data loaded from a .txt file.
-    __profilometer_data: np.ndarray | None
+    __profilometer_data: np.ndarray | None = None
+
+    # Brillouin data loaded from an .xlsx file.
+    __brillouin_data: np.ndarray | None = None
 
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
@@ -54,7 +57,9 @@ class LoadDataPage(QtWidgets.QWizardPage):
         self.__load_elemental_data()
 
     def cleanupPage(self) -> None:
+        self.__brillouin_data = None
         self.__laser = None
+        self.__profilometer_data = None
 
     def isComplete(self) -> bool:
         # Disable the next button so the user can't move to the next page.

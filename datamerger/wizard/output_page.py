@@ -4,17 +4,16 @@ from datamerger.widget import PathSelectWidget
 
 
 class OutputPage(QtWidgets.QWizardPage):
-    """The fourth page of the wizard that collects information about where to
-    output the final .npz file."""
+    """The page of the wizard that prompts the user to choose an output path for
+    the merged .npz file."""
 
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
 
         self.setTitle("Output")
         self.setSubTitle(
-            "Select the output path where you would like the final pew² .npz "
-            "file to be emitted.\n\nNote that if you select the original file "
-            "it will be overridden."
+            "Select where you would like the final pew² .npz file to be saved."
+            "\n\nNote that if you select the original file it will be overridden."
         )
 
         self.__path_select_widget = PathSelectWidget(

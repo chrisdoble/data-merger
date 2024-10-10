@@ -8,11 +8,6 @@ def show_critical_message_box(parent: QtWidgets.QWidget, text: str) -> None:
     __show_message_box(QtWidgets.QMessageBox.Icon.Critical, parent, text)
 
 
-def show_information_message_box(parent: QtWidgets.QWidget, text: str) -> None:
-    """Shows an information message in a dismissable message box."""
-    __show_message_box(QtWidgets.QMessageBox.Icon.Information, parent, text)
-
-
 def __show_message_box(
     icon: QtWidgets.QMessageBox.Icon, parent: QtWidgets.QWidget, text: str
 ) -> None:

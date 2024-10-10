@@ -8,8 +8,15 @@ BRILLOUIN_PATH_FIELD_NAME = "brillouin_path"
 
 
 class SelectDataPage(QtWidgets.QWizardPage):
-    """The first page of the wizard that prompts the user to select the
-    elemental, profilometer, and/or Brillouin data to use."""
+    """The page of the wizard that prompts the user to select the elemental,
+    profilometer, and/or Brillouin data to use.
+
+    Elemental data must be selected and at least one of the profilometer or
+    Brillouin data must also be selected (otherwise there's nothing to merge).
+
+    After selecting the data the wizard moves to the load data page. This is
+    marked as a commit page so the user can't move back from that page.
+    """
 
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
