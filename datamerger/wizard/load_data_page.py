@@ -8,6 +8,7 @@ from PySide6 import QtCore, QtWidgets
 
 from datamerger.io.brillouin import load as load_brillouin
 from datamerger.io.profilometer import load as load_profilometer
+from datamerger.io.sized_data import SizedData
 from datamerger.util import show_critical_message_box
 from .select_data_page import (
     BRILLOUIN_PATH_FIELD_NAME,
@@ -33,10 +34,10 @@ class LoadDataPage(QtWidgets.QWizardPage):
     __laser: Laser | None = None
 
     # Profilometer data loaded from a .txt file.
-    __profilometer_data: np.ndarray | None = None
+    __profilometer_data: SizedData | None = None
 
     # Brillouin data loaded from an .xlsx file.
-    __brillouin_data: np.ndarray | None = None
+    __brillouin_data: SizedData | None = None
 
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
@@ -76,28 +77,28 @@ class LoadDataPage(QtWidgets.QWizardPage):
     def get_laser(self) -> Laser | None:
         return self.__laser
 
-    def set_laser(self, _laser: Laser | None) -> None:
+    def set_laser(self, laser: Laser | None) -> None:
         raise RuntimeError("Setting this field is not allowed")
 
     laser = QtCore.Property(Laser, get_laser, set_laser)
 
-    def get_profilometer_data(self) -> np.ndarray | None:
+    def get_profilometer_data(self) -> SizedData | None:
         return self.__profilometer_data
 
-    def set_profilometer_data(self, profilometer_data: np.ndarray | None) -> None:
+    def set_profilometer_data(self, profilometer_data: SizedData | None) -> None:
         raise RuntimeError("Setting this field is not allowed")
 
     profilometer_data = QtCore.Property(
-        np.ndarray, get_profilometer_data, set_profilometer_data
+        SizedData, get_profilometer_data, set_profilometer_data
     )
 
-    def get_brillouin_data(self) -> np.ndarray | None:
+    def get_brillouin_data(self) -> SizedData | None:
         return self.__brillouin_data
 
-    def set_brillouin_data(self, brillouin_data: np.ndarray | None) -> None:
+    def set_brillouin_data(self, brillouin_data: SizedData | None) -> None:
         raise RuntimeError("Setting this field is not allowed")
 
-    brillouin_data = QtCore.Property(np.ndarray, get_brillouin_data, set_brillouin_data)
+    brillouin_data = QtCore.Property(SizedData, get_brillouin_data, set_brillouin_data)
 
     def __load_elemental_data(self) -> None:
         def on_success(laser: Laser):
@@ -112,7 +113,7 @@ class LoadDataPage(QtWidgets.QWizardPage):
         QtCore.QThreadPool.globalInstance().start(load_elemental_data)
 
     def __load_profilometer_data(self) -> None:
-        def on_success(profilometer_data: np.ndarray | None):
+        def on_success(profilometer_data: SizedData | None):
             self.__profilometer_data = profilometer_data
             self.__load_brillouin_data()
 
@@ -129,7 +130,7 @@ class LoadDataPage(QtWidgets.QWizardPage):
         QtCore.QThreadPool.globalInstance().start(load_profilometer_data)
 
     def __load_brillouin_data(self) -> None:
-        def on_success(brillouin_data: np.ndarray | None):
+        def on_success(brillouin_data: SizedData | None):
             self.__brillouin_data = brillouin_data
             self.wizard().next()
 
@@ -187,7 +188,7 @@ class LoadProfilometerData(QtCore.QRunnable):
 
     def run(self) -> None:
         try:
-            self.signals.success.emit(load_profilometer(self.__path, 0))
+            self.signals.success.emit(load_profilometer(self.__path))
         except:
             logging.exception(f"Failed to load profilometer data at {self.__path}")
             self.signals.error.emit()

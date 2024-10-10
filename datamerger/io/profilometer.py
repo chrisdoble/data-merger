@@ -1,27 +1,35 @@
 import numpy as np
 
+from .sized_data import SizedData
 
-def load(path: str, placeholder: float) -> np.ndarray:
+
+def load(path: str) -> SizedData:
     """Loads profilometer data.
 
-    Sometimes values in the file are equal to the most negative 32-bit float. I
-    don't know why, but they're not valid measurements. They will be replaced
-    with the `placeholder` parameter.
+    Sometimes values in a profilometer data file are equal to the most negative
+    32-bit float. They're not valid measurements and are thus replaced with NaN.
 
     :param path: The path to the profilometer data.
-    :param placeholder: If values in the file are equal to the most negative
-        32-bit float they will be replaced with this value.
     :return: The profilometer data contained within the file at `path`.
     """
     with open(path) as f:
         lines = f.read().splitlines()
+
+        # Ensure ther are enough lines to be valid profilometer data.
         assert len(lines) >= 4, "Too few lines in profilometer data"
-        return np.array(
-            [
+
+        # Ensure the pixelSize column is present and has units of µm.
+        assert lines[0] == "numCols\tnumRows\tpixelSize (um)"
+
+        return SizedData(
+            np.array(
                 [
-                    placeholder if s == "-3.4028235E+38" else float(s)
-                    for s in line.split("\t")
+                    [
+                        float("nan" if s == "-3.4028235E+38" else s)
+                        for s in line.split("\t")
+                    ]
+                    for line in lines[3:]
                 ]
-                for line in lines[3:]
-            ]
+            ),
+            float(lines[1].split("\t")[2]),
         )
