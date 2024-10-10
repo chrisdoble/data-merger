@@ -4,9 +4,6 @@ from PySide6 import QtCore, QtGui, QtWidgets
 class PathSelectWidget(QtWidgets.QWidget):
     """A widget that allows selection of a filesystem path."""
 
-    # The path that has been selected (if any).
-    __path: str = ""
-
     # Emitted when the path changes, i.e. a file is selected or cleared.
     path_changed = QtCore.Signal(str)
 
@@ -15,6 +12,7 @@ class PathSelectWidget(QtWidgets.QWidget):
         name_filter: str,
         accept_mode: QtWidgets.QFileDialog.AcceptMode = QtWidgets.QFileDialog.AcceptMode.AcceptOpen,
         file_mode: QtWidgets.QFileDialog.FileMode = QtWidgets.QFileDialog.FileMode.AnyFile,
+        initial_path: str = "",
         parent: QtWidgets.QWidget | None = None,
     ) -> None:
         """Initialises the widget.
@@ -34,10 +32,14 @@ class PathSelectWidget(QtWidgets.QWidget):
         self.__file_mode = file_mode
         self.__name_filter = name_filter
 
+        # The path that has been selected (if any).
+        self.__path = initial_path
+
         # The text box that shows that path.
         self.__line_edit = ClickableReadOnlyLineEdit(self)
         self.__line_edit.clicked.connect(self.__show_file_dialog)
         self.__line_edit.setPlaceholderText("Path to file...")
+        self.__line_edit.setText(self.__path)
 
         # The button that opens the file dialog.
         self.__button = QtWidgets.QPushButton("Select file")

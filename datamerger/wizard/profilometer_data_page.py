@@ -26,7 +26,6 @@ class ProfilometerDataPage(QtWidgets.QWizardPage):
         self.setSubTitle("Select a profilometer .txt file or click next to skip.")
 
         self.__path_select_widget = PathSelectWidget("Profilometer files (*.txt)")
-        self.registerField("profilometer_path", self.__path_select_widget, "path")
 
         self.__graphics_view = GraphicsView(self)
 
@@ -36,7 +35,7 @@ class ProfilometerDataPage(QtWidgets.QWizardPage):
         self.setLayout(layout)
 
     def initializePage(self) -> None:
-        laser = load_npz(self.field("npz_path"))
+        laser = load_npz(self.field("elemental_path"))
         data = laser.get(laser.elements[0])
 
         # Determine the minimum and maximum values (ignoring NaNs).

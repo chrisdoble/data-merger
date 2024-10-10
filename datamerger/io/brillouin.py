@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 
-def load(path: str) -> None:
+def load(path: str) -> np.ndarray:
     """Loads Brillouin data from an Excel spreadsheet.
 
     :param path: The path to the Brillouin data.

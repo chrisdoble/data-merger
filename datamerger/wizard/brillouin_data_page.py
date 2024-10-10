@@ -23,7 +23,6 @@ class BrillouinDataPage(QtWidgets.QWizardPage):
         self.setSubTitle("Select a Brillouin .xlsx file or click next to skip.")
 
         self.__path_select_widget = PathSelectWidget("Brillouin files (*.xlsx)")
-        self.registerField("brillouin_path", self.__path_select_widget, "path")
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.__path_select_widget)
