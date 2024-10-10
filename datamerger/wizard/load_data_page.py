@@ -17,6 +17,10 @@ from .select_data_page import (
 
 logger = logging.getLogger(__name__)
 
+LASER_FIELD_NAME = "laser"
+PROFILOMETER_DATA_FIELD_NAME = "profilometer_data"
+BRILLOUIN_DATA_FIELD_NAME = "brillouin_data"
+
 
 class LoadDataPage(QtWidgets.QWizardPage):
     """The second page of the wizard that loads the data into memory.
@@ -51,6 +55,10 @@ class LoadDataPage(QtWidgets.QWizardPage):
         layout.addStretch()
         self.setLayout(layout)
 
+        self.registerField(LASER_FIELD_NAME, self, "laser")
+        self.registerField(PROFILOMETER_DATA_FIELD_NAME, self, "profilometer_data")
+        self.registerField(BRILLOUIN_DATA_FIELD_NAME, self, "brillouin_data")
+
     def initializePage(self) -> None:
         # Load all the data in serial to make it easier to handle the case where
         # loading one fails. Otherwise we need to cancel parallel jobs, etc.
@@ -64,6 +72,32 @@ class LoadDataPage(QtWidgets.QWizardPage):
     def isComplete(self) -> bool:
         # Disable the next button so the user can't move to the next page.
         return False
+
+    def get_laser(self) -> Laser | None:
+        return self.__laser
+
+    def set_laser(self, _laser: Laser | None) -> None:
+        raise RuntimeError("Setting this field is not allowed")
+
+    laser = QtCore.Property(Laser, get_laser, set_laser)
+
+    def get_profilometer_data(self) -> np.ndarray | None:
+        return self.__profilometer_data
+
+    def set_profilometer_data(self, profilometer_data: np.ndarray | None) -> None:
+        raise RuntimeError("Setting this field is not allowed")
+
+    profilometer_data = QtCore.Property(
+        np.ndarray, get_profilometer_data, set_profilometer_data
+    )
+
+    def get_brillouin_data(self) -> np.ndarray | None:
+        return self.__brillouin_data
+
+    def set_brillouin_data(self, brillouin_data: np.ndarray | None) -> None:
+        raise RuntimeError("Setting this field is not allowed")
+
+    brillouin_data = QtCore.Property(np.ndarray, get_brillouin_data, set_brillouin_data)
 
     def __load_elemental_data(self) -> None:
         def on_success(laser: Laser):

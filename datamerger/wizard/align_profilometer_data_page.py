@@ -3,7 +3,7 @@ from pewlib.io.npz import load
 from PySide6 import QtGui, QtWidgets
 
 from datamerger.widget import GraphicsView, turbo_color_table
-from .select_data_page import ELEMENTAL_PATH_FIELD_NAME
+from .load_data_page import LASER_FIELD_NAME
 
 
 class AlignProfilometerDataPage(QtWidgets.QWizardPage):
@@ -26,7 +26,7 @@ class AlignProfilometerDataPage(QtWidgets.QWizardPage):
         self.setLayout(layout)
 
     def initializePage(self) -> None:
-        laser = load(self.field(ELEMENTAL_PATH_FIELD_NAME))
+        laser = self.field(LASER_FIELD_NAME)
         data = laser.get(laser.elements[0])
 
         # Determine the minimum and maximum values (ignoring NaNs).
