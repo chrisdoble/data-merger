@@ -5,3 +5,4 @@ pandas-stubs==2.2.3.241009
 pewlib==0.9.0
 pyinstaller==6.10.0
 PySide6==6.7.3
+scipy==1.14.1

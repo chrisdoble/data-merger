@@ -1,6 +1,7 @@
 import numpy as np
 from pewlib import Laser
 from PySide6 import QtCore, QtGui, QtWidgets
+import scipy as sp
 
 from datamerger.io.sized_data import SizedData
 from .turbo_color_table import turbo_color_table
@@ -13,18 +14,38 @@ class DataAlignmentView(QtWidgets.QGraphicsView):
         sized_data: SizedData,
         parent: QtWidgets.QWidget | None = None,
     ):
-        super().__init__(QtWidgets.QGraphicsScene(-1e5, -1e5, 2e5, 2e5, parent), parent)
+        super().__init__(QtWidgets.QGraphicsScene(parent), parent)
 
         self.setBackgroundBrush(QtCore.Qt.GlobalColor.black)
-        self.setDragMode(QtWidgets.QGraphicsView.DragMode.ScrollHandDrag)
         self.setMinimumSize(640, 480)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
-        data = laser.get(laser.elements[0])
-        pixmap = make_pixmap_from_data(data)
-        pixmap_item = self.scene().addPixmap(pixmap)
-        self.centerOn(pixmap_item)
+        # Render the elemental data such that it is in a fixed position.
+        elemental_data = laser.get(laser.elements[0])
+        elemental_pixmap = make_pixmap_from_data(elemental_data)
+        self.scene().addPixmap(elemental_pixmap)
+
+        # Render the other data such that it is moveable and semi-transparent.
+        other_data = sp.ndimage.zoom(
+            np.rot90(np.nan_to_num(sized_data.data, nan=20), k=-1),
+            sized_data.element_size / laser.config.get_pixel_width(),
+        )
+        other_data_pixmap = make_pixmap_from_data(other_data)
+        other_data_pixmap_item = self.scene().addPixmap(other_data_pixmap)
+        other_data_pixmap_item.setFlags(
+            QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable
+        )
+        other_data_pixmap_item.setOpacity(0.5)
+
+        # If QGraphicsView.sceneRect is unset the view shows the area described
+        # by QGraphicsScene.sceneRect. If that is unset the scene's rect is
+        # equal to the smallest bounding box that contains all items that have
+        # been added to the scene since it was created. In that scenario, as we
+        # drag items around the scene the scene's rect grows and the view pans
+        # to contain it. This behaviour is strange, so here we set the view's
+        # scene rect to its initial value, preventing it from panning on drag.
+        self.setSceneRect(self.scene().sceneRect())
 
     def wheelEvent(self, event: QtGui.QWheelEvent):
         self.setTransformationAnchor(
