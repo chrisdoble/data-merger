@@ -77,28 +77,17 @@ class LoadDataPage(QtWidgets.QWizardPage):
     def get_laser(self) -> Laser | None:
         return self.__laser
 
-    def set_laser(self, laser: Laser | None) -> None:
-        raise RuntimeError("Setting this field is not allowed")
-
-    laser = QtCore.Property(Laser, get_laser, set_laser)
+    laser = QtCore.Property(Laser, get_laser)
 
     def get_profilometer_data(self) -> SizedData | None:
         return self.__profilometer_data
 
-    def set_profilometer_data(self, profilometer_data: SizedData | None) -> None:
-        raise RuntimeError("Setting this field is not allowed")
-
-    profilometer_data = QtCore.Property(
-        SizedData, get_profilometer_data, set_profilometer_data
-    )
+    profilometer_data = QtCore.Property(SizedData, get_profilometer_data)
 
     def get_brillouin_data(self) -> SizedData | None:
         return self.__brillouin_data
 
-    def set_brillouin_data(self, brillouin_data: SizedData | None) -> None:
-        raise RuntimeError("Setting this field is not allowed")
-
-    brillouin_data = QtCore.Property(SizedData, get_brillouin_data, set_brillouin_data)
+    brillouin_data = QtCore.Property(SizedData, get_brillouin_data)
 
     def __load_elemental_data(self) -> None:
         def on_success(laser: Laser):

@@ -21,8 +21,7 @@ class OutputPage(QtWidgets.QWizardPage):
             accept_mode=QtWidgets.QFileDialog.AcceptMode.AcceptSave,
             file_mode=QtWidgets.QFileDialog.FileMode.AnyFile,
         )
-        self.__path_select_widget.path_changed.connect(self.completeChanged)
-        self.registerField("output_path*", self.__path_select_widget, "path")
+        self.registerField("output_path*", self.__path_select_widget)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.__path_select_widget)
