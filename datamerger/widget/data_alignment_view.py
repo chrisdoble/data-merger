@@ -21,22 +21,15 @@ class DataAlignmentView(QtWidgets.QGraphicsView):
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
-        # Render the elemental data such that it is in a fixed position.
+        # Render the elemental data in a fixed position.
         elemental_data = laser.get(laser.elements[0])
         elemental_pixmap = make_pixmap_from_data(elemental_data)
         self.scene().addPixmap(elemental_pixmap)
 
-        # Render the other data such that it is moveable and semi-transparent.
-        other_data = sp.ndimage.zoom(
-            np.rot90(np.nan_to_num(sized_data.data, nan=20), k=-1),
-            sized_data.element_size / laser.config.get_pixel_width(),
-        )
-        other_data_pixmap = make_pixmap_from_data(other_data)
-        other_data_pixmap_item = self.scene().addPixmap(other_data_pixmap)
-        other_data_pixmap_item.setFlags(
-            QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable
-        )
-        other_data_pixmap_item.setOpacity(0.5)
+        # Prepare the other data in a background thread.
+        data_manipulator = DataManipulator(laser, -1, sized_data)
+        data_manipulator.signals.success.connect(self.__on_data_manipulator_success)
+        QtCore.QThreadPool.globalInstance().start(data_manipulator)
 
         # If QGraphicsView.sceneRect is unset the view shows the area described
         # by QGraphicsScene.sceneRect. If that is unset the scene's rect is
@@ -54,6 +47,11 @@ class DataAlignmentView(QtWidgets.QGraphicsView):
         scale = 2 ** (event.angleDelta().y() / 360.0)
         self.scale(scale, scale)
 
+    def __on_data_manipulator_success(self, other_data: np.ndarray) -> None:
+        pixmap_item = self.scene().addPixmap(make_pixmap_from_data(other_data))
+        pixmap_item.setFlags(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable)
+        pixmap_item.setOpacity(0.5)
+
 
 def make_pixmap_from_data(data: np.ndarray) -> QtGui.QPixmap:
     """Makes a pixmap from a two-dimensional array of data.
@@ -67,7 +65,7 @@ def make_pixmap_from_data(data: np.ndarray) -> QtGui.QPixmap:
     maximum = np.nanpercentile(data, 99)
 
     # Convert values to uint8s to be used as indices into the lookup table.
-    # If there are any NaNs numpy will warn that they're invalid and convert
+    # If there are any NaNs NumPy will warn that they're invalid and convert
     # them to 0s. The context manager suppresses those warnings.
     with np.errstate(invalid="ignore"):
         data = (255 * (data - minimum) / (maximum - minimum)).astype(np.uint8)
@@ -84,3 +82,44 @@ def make_pixmap_from_data(data: np.ndarray) -> QtGui.QPixmap:
     image.setColorCount(len(turbo_color_table))
 
     return QtGui.QPixmap.fromImage(image)
+
+
+class DataManipulator(QtCore.QRunnable):
+    """Manipulates data (rotates, zooms, etc.).
+
+    This can be quite computationally intensive, so we do it in another thread.
+    """
+
+    class Signals(QtCore.QObject):
+        success = QtCore.Signal(np.ndarray)
+
+    def __init__(self, laser: Laser, rotation: int, sized_data: SizedData) -> None:
+        """Initialise the instance.
+
+        :param laser: The laser data to align with.
+        :param rotation: The amount to rotate the data. Each unit corresponds to
+            a counter-clockwise rotation of 90 degrees, e.g. 1 is 90, -1 is -90.
+        :param sized_data: The data to align with the laser data. The rotation
+            applies to this data.
+        """
+        super().__init__()
+
+        self.__laser = laser
+        self.__rotation = rotation
+        self.signals = self.Signals()
+        self.__sized_data = sized_data
+
+    def run(self) -> None:
+        # First, remove NaNs otherwise they spread everywhere when we zoom.
+        data = np.nan_to_num(self.__sized_data.data, nan=20)
+
+        # Rotate in increments of 90 degrees.
+        data = np.rot90(data, k=self.__rotation)
+
+        # Resample the image so it has the same resolution as the laser data.
+        data = sp.ndimage.zoom(
+            data,
+            self.__sized_data.element_size / self.__laser.config.get_pixel_width(),
+        )
+
+        self.signals.success.emit(data)
