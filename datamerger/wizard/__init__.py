@@ -1,4 +1,4 @@
-from PySide6 import QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 from .align_brillouin_data_page import AlignBrillouinDataPage
 from .align_profilometer_data_page import AlignProfilometerDataPage
@@ -30,6 +30,10 @@ class Wizard(QtWidgets.QWizard):
         super().__init__(parent)
 
         self.currentIdChanged.connect(self.__on_current_id_changed)
+
+        self.setDefaultProperty(
+            "PathSelectWidget", "path", QtCore.SIGNAL("path_changed(QString)")  # type: ignore
+        )
 
         self.setPage(self.__select_data_page_id, SelectDataPage())
         self.setPage(self.__load_data_page_id, LoadDataPage())

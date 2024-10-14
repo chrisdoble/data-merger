@@ -30,30 +30,39 @@ class SelectDataPage(QtWidgets.QWizardPage):
         )
 
         # Elemental data
-        self.__elemental_path_select_widget = PathSelectWidget("pew² files (*.npz)")
-        self.__elemental_path_select_widget.path_changed.connect(self.completeChanged)
+        self.__elemental_path_select_widget = PathSelectWidget(
+            "pew² files (*.npz)",
+        )
         self.registerField(
-            f"{ELEMENTAL_PATH_FIELD_NAME}*", self.__elemental_path_select_widget, "path"
+            f"{ELEMENTAL_PATH_FIELD_NAME}*",
+            self.__elemental_path_select_widget,
         )
 
         # Profilometer data
         self.__profilometer_path_select_widget = PathSelectWidget(
             "Profilometer files (*.txt)"
         )
+        # This field isn't required so its changed signal isn't observed
+        # automatically. However, at least one of the profilometer path or the
+        # Brillouin path is required so we must manually connect their changed
+        # signals to the complete changed signal to ensure the next button is
+        # enabled when the required data has been selected.
         self.__profilometer_path_select_widget.path_changed.connect(
             self.completeChanged
         )
         self.registerField(
-            PROFILOMETER_PATH_FIELD_NAME, self.__profilometer_path_select_widget, "path"
+            PROFILOMETER_PATH_FIELD_NAME,
+            self.__profilometer_path_select_widget,
         )
 
         # Brillouin data
         self.__brillouin_path_select_widget = PathSelectWidget(
             "Brillouin files (*.xlsx)"
         )
+        # See above.
         self.__brillouin_path_select_widget.path_changed.connect(self.completeChanged)
         self.registerField(
-            BRILLOUIN_PATH_FIELD_NAME, self.__brillouin_path_select_widget, "path"
+            BRILLOUIN_PATH_FIELD_NAME, self.__brillouin_path_select_widget
         )
 
         layout = QtWidgets.QFormLayout()
