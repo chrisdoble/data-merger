@@ -7,7 +7,7 @@ from datamerger.wizard import Wizard
 
 
 if __name__ == "__main__":
-    app = QtWidgets.QApplication([])
+    app = QtWidgets.QApplication()
     wizard = Wizard()
     wizard.show()
     sys.exit(app.exec())
