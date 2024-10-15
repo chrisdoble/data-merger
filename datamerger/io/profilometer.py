@@ -13,23 +13,33 @@ def load(path: str) -> SizedData:
     :return: The profilometer data contained within the file at `path`.
     """
     with open(path) as f:
-        lines = f.read().splitlines()
-
-        # Ensure ther are enough lines to be valid profilometer data.
-        assert len(lines) >= 4, "Too few lines in profilometer data"
-
         # Ensure the pixelSize column is present and has units of µm.
-        assert lines[0] == "numCols\tnumRows\tpixelSize (um)"
+        assert f.readline() == "numCols\tnumRows\tpixelSize (um)\n"
 
-        return SizedData(
-            np.array(
-                [
-                    [
-                        float("nan" if s == "-3.4028235E+38" else s)
-                        for s in line.split("\t")
-                    ]
-                    for line in lines[3:]
-                ]
-            ),
-            float(lines[1].split("\t")[2]),
-        )
+        # Determine the dimensions of the data.
+        properties = f.readline().strip().split("\t")
+        width = int(properties[0])
+        height = int(properties[1])
+        pixel_size = float(properties[2])
+
+        # Allocate an array large enough to store it.
+        data = np.empty((height, width), np.float32)
+
+        # Ignore the next line.
+        f.readline()
+
+        # Load the data.
+        i = 0
+        while True:
+            line = f.readline().strip()
+            if line == "":
+                break
+
+            j = 0
+            for s in line.split("\t"):
+                data[i, j] = float("nan" if s == "-3.4028235E+38" else s)
+                j += 1
+
+            i += 1
+
+        return SizedData(data, pixel_size)

@@ -8,10 +8,14 @@ from .turbo_color_table import turbo_color_table
 
 
 class DataAlignmentView(QtWidgets.QGraphicsView):
+    __laser: Laser | None = None
+    __laser_pixmap_item: QtWidgets.QGraphicsPixmapItem | None = None
+    __other_data: SizedData | None = None
+    __other_data_manipulated: np.ndarray | None = None
+    __other_data_pixmap_item: QtWidgets.QGraphicsPixmapItem | None = None
+
     def __init__(
         self,
-        laser: Laser,
-        sized_data: SizedData,
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(QtWidgets.QGraphicsScene(parent), parent)
@@ -21,13 +25,32 @@ class DataAlignmentView(QtWidgets.QGraphicsView):
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
+    def clear_data(self) -> None:
+        if self.__laser_pixmap_item:
+            self.scene().removeItem(self.__laser_pixmap_item)
+
+        self.__laser = None
+        self.__laser_pixmap_item = None
+
+        if self.__other_data_pixmap_item:
+            self.scene().removeItem(self.__other_data_pixmap_item)
+
+        self.__other_data = None
+        self.__other_data_manipulated = None
+        self.__other_data_pixmap_item = None
+
+    def set_data(self, laser: Laser, other_data: SizedData) -> None:
+        self.clear_data()
+
         # Render the elemental data in a fixed position.
+        self.__laser = laser
         elemental_data = laser.get(laser.elements[0])
         elemental_pixmap = make_pixmap_from_data(elemental_data)
-        self.scene().addPixmap(elemental_pixmap)
+        self.__laser_pixmap_item = self.scene().addPixmap(elemental_pixmap)
 
         # Prepare the other data in a background thread.
-        data_manipulator = DataManipulator(laser, -1, sized_data)
+        self.__other_data = other_data
+        data_manipulator = DataManipulator(laser, -1, other_data)
         data_manipulator.signals.success.connect(self.__on_data_manipulator_success)
         QtCore.QThreadPool.globalInstance().start(data_manipulator)
 
@@ -47,10 +70,15 @@ class DataAlignmentView(QtWidgets.QGraphicsView):
         scale = 2 ** (event.angleDelta().y() / 360.0)
         self.scale(scale, scale)
 
-    def __on_data_manipulator_success(self, other_data: np.ndarray) -> None:
-        pixmap_item = self.scene().addPixmap(make_pixmap_from_data(other_data))
-        pixmap_item.setFlags(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable)
-        pixmap_item.setOpacity(0.5)
+    def __on_data_manipulator_success(self, other_data_manipulated: np.ndarray) -> None:
+        self.__other_data_manipulated = other_data_manipulated
+        self.__other_data_pixmap_item = self.scene().addPixmap(
+            make_pixmap_from_data(other_data_manipulated)
+        )
+        self.__other_data_pixmap_item.setFlags(
+            QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable
+        )
+        self.__other_data_pixmap_item.setOpacity(0.5)
 
 
 def make_pixmap_from_data(data: np.ndarray) -> QtGui.QPixmap:
