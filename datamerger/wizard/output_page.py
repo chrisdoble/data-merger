@@ -29,3 +29,7 @@ class OutputPage(QtWidgets.QWizardPage):
 
     def isComplete(self) -> bool:
         return self.__path_select_widget.path != ""
+
+    @property
+    def path(self) -> str:
+        return self.__path_select_widget.path

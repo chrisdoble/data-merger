@@ -1,3 +1,4 @@
+import numpy as np
 from pewlib import Laser
 from PySide6 import QtCore, QtWidgets
 
@@ -129,3 +130,23 @@ class Wizard(QtWidgets.QWizard):
     @property
     def profilometer_data(self) -> SizedData | None:
         return self.__get_load_data_path().profilometer_data
+
+    # AlignProfilometerDataPage properties
+    def __get_align_profilometer_data_page(self) -> apdp.AlignProfilometerDataPage:
+        page = self.page(self.__align_profilometer_data_page_id)
+        assert isinstance(page, apdp.AlignProfilometerDataPage)
+        return page
+
+    @property
+    def aligned_profilometer_data(self) -> np.ndarray | None:
+        return self.__get_align_profilometer_data_page().aligned_data
+
+    # OutputPage properties
+    def __get_output_page(self) -> op.OutputPage:
+        page = self.page(self.__output_page_id)
+        assert isinstance(page, op.OutputPage)
+        return page
+
+    @property
+    def output_path(self) -> str:
+        return self.__get_output_page().path

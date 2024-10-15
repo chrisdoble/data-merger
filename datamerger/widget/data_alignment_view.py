@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, cast, Tuple
 
 import numpy as np
 from pewlib import Laser
@@ -88,7 +88,34 @@ class DataAlignmentView(QtWidgets.QGraphicsView):
 
     @property
     def aligned_data(self) -> np.ndarray | None:
-        return self.__other_data_manipulated
+        if (
+            self.__laser is None
+            or self.__other_data_manipulated is None
+            or self.__other_data_pixmap_item is None
+        ):
+            return None
+
+        # Select the portion of data that overlaps the elemental data.
+        height, width = self.__laser.data.shape
+        x, y = cast(
+            Tuple[int, int], self.__other_data_pixmap_item.pos().toPoint().toTuple()
+        )
+        overlap = self.__other_data_manipulated[
+            max(0, -y) : max(0, height - y), max(0, -x) : max(0, width - x)
+        ]
+
+        # Determine the dtype. This assumes all elements use the same dtype.
+        dtype = self.__laser.get(self.__laser.elements[0]).dtype
+
+        # Create an array that has the same dimensions as the elemental data and
+        # insert the overlapping portion at the position it's shown in the UI.
+        aligned_data = np.zeros(self.__laser.data.shape, dtype)
+        aligned_data[
+            max(0, y) : max(0, y) + overlap.shape[0],
+            max(0, x) : max(0, x) + overlap.shape[1],
+        ] = overlap
+
+        return aligned_data
 
 
 def make_pixmap_from_data(data: np.ndarray) -> QtGui.QPixmap:

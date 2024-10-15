@@ -23,7 +23,7 @@ def load(path: str) -> SizedData:
         pixel_size = float(properties[2])
 
         # Allocate an array large enough to store it.
-        data = np.empty((height, width), np.float32)
+        data = np.empty((height, width), np.float64)
 
         # Ignore the next line.
         f.readline()

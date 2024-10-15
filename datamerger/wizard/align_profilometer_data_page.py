@@ -1,3 +1,4 @@
+import numpy as np
 from PySide6 import QtWidgets
 
 from datamerger.widget import DataAlignmentView
@@ -36,3 +37,7 @@ class AlignProfilometerDataPage(wp.WizardPage):
 
     def isComplete(self) -> bool:
         return self.__data_alignment_view.aligned_data is not None
+
+    @property
+    def aligned_data(self) -> np.ndarray | None:
+        return self.__data_alignment_view.aligned_data

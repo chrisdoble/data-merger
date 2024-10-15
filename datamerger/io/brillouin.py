@@ -12,4 +12,4 @@ def load(path: str) -> SizedData:
     :param path: The path to the Brillouin data.
     :return: The Brillouin data contained within the file at `path`.
     """
-    return SizedData(pd.read_excel(path, dtype=np.float32, header=None).to_numpy(), 50)
+    return SizedData(pd.read_excel(path, dtype=np.float64, header=None).to_numpy(), 50)
