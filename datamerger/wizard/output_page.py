@@ -18,11 +18,14 @@ class OutputPage(QtWidgets.QWizardPage):
 
         self.__path_select_widget = PathSelectWidget(
             "pew² files (*.npz)",
+            lambda: self.completeChanged.emit(),
             accept_mode=QtWidgets.QFileDialog.AcceptMode.AcceptSave,
             file_mode=QtWidgets.QFileDialog.FileMode.AnyFile,
         )
-        self.registerField("output_path*", self.__path_select_widget)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.__path_select_widget)
         self.setLayout(layout)
+
+    def isComplete(self) -> bool:
+        return self.__path_select_widget.path != ""

@@ -1,3 +1,5 @@
+from typing import Callable
+
 import numpy as np
 from pewlib import Laser
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -16,9 +18,12 @@ class DataAlignmentView(QtWidgets.QGraphicsView):
 
     def __init__(
         self,
+        on_aligned_data_changed: Callable[[], None],
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(QtWidgets.QGraphicsScene(parent), parent)
+
+        self.__on_aligned_data_changed = on_aligned_data_changed
 
         self.setBackgroundBrush(QtCore.Qt.GlobalColor.black)
         self.setMinimumSize(640, 480)
@@ -79,6 +84,11 @@ class DataAlignmentView(QtWidgets.QGraphicsView):
             QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable
         )
         self.__other_data_pixmap_item.setOpacity(0.5)
+        self.__on_aligned_data_changed()
+
+    @property
+    def aligned_data(self) -> np.ndarray | None:
+        return self.__other_data_manipulated
 
 
 def make_pixmap_from_data(data: np.ndarray) -> QtGui.QPixmap:

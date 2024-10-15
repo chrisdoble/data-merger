@@ -1,15 +1,12 @@
 from PySide6 import QtWidgets
 
 from datamerger.widget import PathSelectWidget
-
-ELEMENTAL_PATH_FIELD_NAME = "elemental_path"
-PROFILOMETER_PATH_FIELD_NAME = "profilometer_path"
-BRILLOUIN_PATH_FIELD_NAME = "brillouin_path"
+from . import wizard_page as wp
 
 
-class SelectDataPage(QtWidgets.QWizardPage):
-    """The page of the wizard that prompts the user to select the elemental,
-    profilometer, and/or Brillouin data to use.
+class SelectDataPage(wp.WizardPage):
+    """The page of the wizard that prompts the user to select the paths to the
+    elemental, profilometer, and/or Brillouin data to use.
 
     Elemental data must be selected and at least one of the profilometer or
     Brillouin data must also be selected (otherwise there's nothing to merge).
@@ -29,40 +26,17 @@ class SelectDataPage(QtWidgets.QWizardPage):
             " select the elemental data and at least one other data source."
         )
 
-        # Elemental data
+        self.__brillouin_path_select_widget = PathSelectWidget(
+            "Brillouin files (*.xlsx)",
+            lambda: self.completeChanged.emit(),
+        )
         self.__elemental_path_select_widget = PathSelectWidget(
             "pew² files (*.npz)",
+            lambda: self.completeChanged.emit(),
         )
-        self.registerField(
-            f"{ELEMENTAL_PATH_FIELD_NAME}*",
-            self.__elemental_path_select_widget,
-        )
-
-        # Profilometer data
         self.__profilometer_path_select_widget = PathSelectWidget(
-            "Profilometer files (*.txt)"
-        )
-        # This field isn't required so its changed signal isn't observed
-        # automatically. However, at least one of the profilometer path or the
-        # Brillouin path is required so we must manually connect their changed
-        # signals to the complete changed signal to ensure the next button is
-        # enabled when the required data has been selected.
-        self.__profilometer_path_select_widget.path_changed.connect(
-            self.completeChanged
-        )
-        self.registerField(
-            PROFILOMETER_PATH_FIELD_NAME,
-            self.__profilometer_path_select_widget,
-        )
-
-        # Brillouin data
-        self.__brillouin_path_select_widget = PathSelectWidget(
-            "Brillouin files (*.xlsx)"
-        )
-        # See above.
-        self.__brillouin_path_select_widget.path_changed.connect(self.completeChanged)
-        self.registerField(
-            BRILLOUIN_PATH_FIELD_NAME, self.__brillouin_path_select_widget
+            "Profilometer files (*.txt)",
+            lambda: self.completeChanged.emit(),
         )
 
         layout = QtWidgets.QFormLayout()
@@ -76,7 +50,18 @@ class SelectDataPage(QtWidgets.QWizardPage):
         self.setLayout(layout)
 
     def isComplete(self) -> bool:
-        return self.__elemental_path_select_widget.get_path() != "" and (
-            self.__profilometer_path_select_widget.get_path() != ""
-            or self.__brillouin_path_select_widget.get_path() != ""
+        return self.elemental_data_path != "" and (
+            self.profilometer_data_path != "" or self.brillouin_data_path != ""
         )
+
+    @property
+    def brillouin_data_path(self) -> str:
+        return self.__brillouin_path_select_widget.path
+
+    @property
+    def elemental_data_path(self) -> str:
+        return self.__elemental_path_select_widget.path
+
+    @property
+    def profilometer_data_path(self) -> str:
+        return self.__profilometer_path_select_widget.path

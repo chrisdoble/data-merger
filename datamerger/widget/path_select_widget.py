@@ -1,15 +1,15 @@
+from typing import Callable
+
 from PySide6 import QtCore, QtGui, QtWidgets
 
 
 class PathSelectWidget(QtWidgets.QWidget):
     """A widget that allows selection of a filesystem path."""
 
-    # Emitted when the path changes, i.e. a file is selected or cleared.
-    path_changed = QtCore.Signal(str)
-
     def __init__(
         self,
         name_filter: str,
+        on_path_changed: Callable[[], None],
         accept_mode: QtWidgets.QFileDialog.AcceptMode = QtWidgets.QFileDialog.AcceptMode.AcceptOpen,
         file_mode: QtWidgets.QFileDialog.FileMode = QtWidgets.QFileDialog.FileMode.AnyFile,
         initial_path: str = "",
@@ -27,17 +27,14 @@ class PathSelectWidget(QtWidgets.QWidget):
         """
         super().__init__(parent)
 
-        # Arguments for the QFileDialog.
         self.__accept_mode = accept_mode
         self.__file_mode = file_mode
         self.__name_filter = name_filter
-
-        # The path that has been selected (if any).
+        self.__on_path_changed = on_path_changed
         self.__path = initial_path
 
         # The text box that shows that path.
-        self.__line_edit = ClickableReadOnlyLineEdit(self)
-        self.__line_edit.clicked.connect(self.__show_file_dialog)
+        self.__line_edit = ClickableReadOnlyLineEdit(self.__show_file_dialog, self)
         self.__line_edit.setPlaceholderText("Path to file...")
         self.__line_edit.setText(self.__path)
 
@@ -52,19 +49,14 @@ class PathSelectWidget(QtWidgets.QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
 
-    def get_path(self) -> str:
+    @property
+    def path(self) -> str:
         return self.__path
-
-    def set_path(self, path: str) -> None:
-        self.__path = path
-        self.__line_edit.setText(path or "")
-
-    path = QtCore.Property(str, get_path, set_path)
 
     @QtCore.Slot()
     def __on_line_edit_text_changed(self, text: str) -> None:
         self.__path = text
-        self.path_changed.emit(text)
+        self.__on_path_changed()
 
     @QtCore.Slot()
     def __show_file_dialog(self) -> None:
@@ -79,18 +71,18 @@ class PathSelectWidget(QtWidgets.QWidget):
                 [path] = selected_files
                 self.__line_edit.setText(path)
                 self.__path = path
-                self.path_changed.emit(path)
+                self.__on_path_changed()
 
 
 class ClickableReadOnlyLineEdit(QtWidgets.QLineEdit):
-    """A read-only `QLineEdit` that emits a `clicked` signal on click."""
-
-    # Emitted when the widget is clicked.
-    clicked = QtCore.Signal()
-
-    def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
+    def __init__(
+        self,
+        on_clicked: Callable[[], None],
+        parent: QtWidgets.QWidget | None = None,
+    ) -> None:
         super().__init__(parent)
+        self.__on_clicked = on_clicked
         self.setReadOnly(True)
 
     def mousePressEvent(self, _event: QtGui.QMouseEvent) -> None:
-        self.clicked.emit()
+        self.__on_clicked()

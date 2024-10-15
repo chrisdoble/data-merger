@@ -10,34 +10,26 @@ from datamerger.io.brillouin import load as load_brillouin
 from datamerger.io.profilometer import load as load_profilometer
 from datamerger.io.sized_data import SizedData
 from datamerger.util import show_critical_message_box
-from .select_data_page import (
-    BRILLOUIN_PATH_FIELD_NAME,
-    ELEMENTAL_PATH_FIELD_NAME,
-    PROFILOMETER_PATH_FIELD_NAME,
-)
+from . import wizard_page as wp
 
 logger = logging.getLogger(__name__)
 
-LASER_FIELD_NAME = "laser"
-PROFILOMETER_DATA_FIELD_NAME = "profilometer_data"
-BRILLOUIN_DATA_FIELD_NAME = "brillouin_data"
 
-
-class LoadDataPage(QtWidgets.QWizardPage):
-    """The second page of the wizard that loads the data into memory.
+class LoadDataPage(wp.WizardPage):
+    """The page of the wizard that loads selected data into memory.
 
     If the data loads successfully the wizard moves to the next page. If it
     fails to load the wizard shows an error and moves to the previous page.
     """
+
+    # Brillouin data loaded from an .xlsx file.
+    __brillouin_data: SizedData | None = None
 
     # Elemental data loaded from a pew² .npz file.
     __laser: Laser | None = None
 
     # Profilometer data loaded from a .txt file.
     __profilometer_data: SizedData | None = None
-
-    # Brillouin data loaded from an .xlsx file.
-    __brillouin_data: SizedData | None = None
 
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
@@ -56,10 +48,6 @@ class LoadDataPage(QtWidgets.QWizardPage):
         layout.addStretch()
         self.setLayout(layout)
 
-        self.registerField(LASER_FIELD_NAME, self, "laser")
-        self.registerField(PROFILOMETER_DATA_FIELD_NAME, self, "profilometer_data")
-        self.registerField(BRILLOUIN_DATA_FIELD_NAME, self, "brillouin_data")
-
     def initializePage(self) -> None:
         # Load all the data in serial to make it easier to handle the case where
         # loading one fails. Otherwise we need to cancel parallel jobs, etc.
@@ -74,27 +62,14 @@ class LoadDataPage(QtWidgets.QWizardPage):
         # Disable the next button so the user can't move to the next page.
         return False
 
-    def get_laser(self) -> Laser | None:
-        return self.__laser
-
-    laser = QtCore.Property(Laser, get_laser)
-
-    def get_profilometer_data(self) -> SizedData | None:
-        return self.__profilometer_data
-
-    profilometer_data = QtCore.Property(SizedData, get_profilometer_data)
-
-    def get_brillouin_data(self) -> SizedData | None:
-        return self.__brillouin_data
-
-    brillouin_data = QtCore.Property(SizedData, get_brillouin_data)
-
     def __load_elemental_data(self) -> None:
         def on_success(laser: Laser):
             self.__laser = laser
             self.__load_profilometer_data()
 
-        load_elemental_data = LoadElementalData(self.field(ELEMENTAL_PATH_FIELD_NAME))
+        path = self.get_wizard().elemental_data_path
+        assert path != ""
+        load_elemental_data = LoadElementalData(path)
         load_elemental_data.signals.error.connect(
             self.__make_error_handler("elemental")
         )
@@ -106,7 +81,7 @@ class LoadDataPage(QtWidgets.QWizardPage):
             self.__profilometer_data = profilometer_data
             self.__load_brillouin_data()
 
-        path = self.field(PROFILOMETER_PATH_FIELD_NAME)
+        path = self.get_wizard().profilometer_data_path
         if path == "":
             on_success(None)
             return
@@ -123,7 +98,7 @@ class LoadDataPage(QtWidgets.QWizardPage):
             self.__brillouin_data = brillouin_data
             self.wizard().next()
 
-        path = self.field(BRILLOUIN_PATH_FIELD_NAME)
+        path = self.get_wizard().brillouin_data_path
         if path == "":
             on_success(None)
             return
@@ -143,6 +118,18 @@ class LoadDataPage(QtWidgets.QWizardPage):
             )
 
         return on_error
+
+    @property
+    def brillouin_data(self) -> SizedData | None:
+        return self.__brillouin_data
+
+    @property
+    def elemental_data(self) -> Laser | None:
+        return self.__laser
+
+    @property
+    def profilometer_data(self) -> SizedData | None:
+        return self.__profilometer_data
 
 
 class LoadElementalData(QtCore.QRunnable):

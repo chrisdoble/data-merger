@@ -2,7 +2,6 @@ import sys
 
 from PySide6 import QtWidgets
 
-from datamerger import config
 from datamerger.wizard import Wizard
 
 
