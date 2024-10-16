@@ -17,13 +17,19 @@ class DataAlignmentView(QtWidgets.QWidget):
     ):
         super().__init__(parent)
 
+        self.__element: str | None = None
         self.__laser: Laser | None = None
         self.__laser_pixmap_item: QtWidgets.QGraphicsPixmapItem | None = None
-        self.__rotation: int = 0
         self.__other_data: SizedData | None = None
         self.__other_data_manipulated: np.ndarray | None = None
         self.__other_data_pixmap_item: QtWidgets.QGraphicsPixmapItem | None = None
         self.__on_aligned_data_changed = on_aligned_data_changed
+        self.__rotation: int = 0
+
+        self.__element_combo_box = QtWidgets.QComboBox(self)
+        self.__element_combo_box.currentIndexChanged.connect(
+            self.__on_element_combo_box_current_index_changed
+        )
 
         rotate_button = QtWidgets.QPushButton("Rotate", self)
         rotate_button.clicked.connect(self.__on_rotate_clicked)
@@ -31,6 +37,7 @@ class DataAlignmentView(QtWidgets.QWidget):
 
         # Lay out toolbar items horizontally.
         toolbar_layout = QtWidgets.QHBoxLayout()
+        toolbar_layout.addWidget(self.__element_combo_box)
         toolbar_layout.addWidget(rotate_button)
         toolbar_layout.addStretch()
 
@@ -88,6 +95,7 @@ class DataAlignmentView(QtWidgets.QWidget):
         if self.__laser_pixmap_item:
             self.__scene.removeItem(self.__laser_pixmap_item)
 
+        self.__element = None
         self.__laser = None
         self.__laser_pixmap_item = None
 
@@ -97,15 +105,17 @@ class DataAlignmentView(QtWidgets.QWidget):
         self.__other_data = None
         self.__other_data_manipulated = None
         self.__other_data_pixmap_item = None
+        self.__rotation = 0
 
     def set_data(self, laser: Laser, other_data: SizedData) -> None:
         self.clear_data()
 
         # Render the elemental data in a fixed position.
+        self.__element = laser.elements[0]
+        self.__element_combo_box.clear()
+        self.__element_combo_box.addItems(laser.elements)
         self.__laser = laser
-        elemental_data = laser.get(laser.elements[0])
-        elemental_pixmap = make_pixmap_from_data(elemental_data)
-        self.__laser_pixmap_item = self.__scene.addPixmap(elemental_pixmap)
+        self.__recreate_laser_pixmap_item()
 
         # Prepare the other data in a background thread.
         self.__other_data = other_data
@@ -126,6 +136,14 @@ class DataAlignmentView(QtWidgets.QWidget):
         )
         scale = 2 ** (event.angleDelta().y() / 360.0)
         self.__graphics_view.scale(scale, scale)
+
+    def __recreate_laser_pixmap_item(self) -> None:
+        assert self.__laser is not None
+        elemental_data = self.__laser.get(self.__element)
+        elemental_pixmap = make_pixmap_from_data(elemental_data)
+        if self.__laser_pixmap_item is not None:
+            self.__scene.removeItem(self.__laser_pixmap_item)
+        self.__laser_pixmap_item = self.__scene.addPixmap(elemental_pixmap)
 
     def __recreate_other_data_pixmap_item(self, position: QtCore.QPoint) -> None:
         """(Re)calculates the manipulated other data, creates an associated
@@ -161,7 +179,16 @@ class DataAlignmentView(QtWidgets.QWidget):
         )
         self.__other_data_pixmap_item.setOpacity(0.5)
         self.__other_data_pixmap_item.setPos(position.toPointF())
+        self.__other_data_pixmap_item.setZValue(1)
         self.__on_aligned_data_changed()
+
+    @QtCore.Slot()
+    def __on_element_combo_box_current_index_changed(self, index: int) -> None:
+        if self.__laser is None:
+            return
+
+        self.__element = self.__laser.elements[index]
+        self.__recreate_laser_pixmap_item()
 
     @QtCore.Slot()
     def __on_rotate_clicked(self) -> None:
