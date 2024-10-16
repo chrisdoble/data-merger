@@ -1,9 +1,14 @@
+import logging
+from typing import Type
+from types import TracebackType
+
 import numpy as np
 from pewlib import Laser
 from PySide6 import QtCore, QtWidgets
 
 from datamerger import config
 from datamerger.io.sized_data import SizedData
+from datamerger.util import show_critical_message_box
 from . import (
     align_brillouin_data_page as abdp,
     align_profilometer_data_page as apdp,
@@ -12,6 +17,8 @@ from . import (
     output_page as op,
     select_data_page as sdp,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class Wizard(QtWidgets.QWizard):
@@ -78,6 +85,19 @@ class Wizard(QtWidgets.QWizard):
         ]
         current_page_index = page_ids.index(self.currentId())
         return page_ids[current_page_index + 1]
+
+    def excepthook(
+        self,
+        type: Type[BaseException],
+        value: BaseException,
+        traceback: TracebackType | None,
+    ) -> None:
+        """Handles exceptions that would otherwise be unhandled."""
+
+        logger.exception("Unhandled exception", exc_info=(type, value, traceback))
+        show_critical_message_box(
+            self, f"An unexpected error occurred:\n\n{type.__name__}: {value}"
+        )
 
     # If the user clicks back from the first align data page we want to go to
     # the select data page, not the load data page. This method detects the case
