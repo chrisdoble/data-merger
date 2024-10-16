@@ -17,9 +17,15 @@ class DonePage(wp.WizardPage):
 
     def initializePage(self) -> None:
         laser = self.get_wizard().elemental_data
+        assert laser is not None
+
+        brillouin_data = self.get_wizard().aligned_brillouin_data
+        if brillouin_data is not None:
+            laser.add("Brillouin", brillouin_data)
+
         profilometer_data = self.get_wizard().aligned_profilometer_data
-        assert laser is not None and profilometer_data is not None
-        laser.add("Profilometer", profilometer_data)
+        if profilometer_data is not None:
+            laser.add("Profilometer", profilometer_data)
 
         path = self.get_wizard().output_path
         assert path != ""

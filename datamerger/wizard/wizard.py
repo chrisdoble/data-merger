@@ -141,6 +141,16 @@ class Wizard(QtWidgets.QWizard):
     def aligned_profilometer_data(self) -> np.ndarray | None:
         return self.__get_align_profilometer_data_page().aligned_data
 
+    # AlignBrillouinDataPage properties
+    def __get_align_brillouin_data_page(self) -> abdp.AlignBrillouinDataPage:
+        page = self.page(self.__align_brillouin_data_page_id)
+        assert isinstance(page, abdp.AlignBrillouinDataPage)
+        return page
+
+    @property
+    def aligned_brillouin_data(self) -> np.ndarray | None:
+        return self.__get_align_brillouin_data_page().aligned_data
+
     # OutputPage properties
     def __get_output_page(self) -> op.OutputPage:
         page = self.page(self.__output_page_id)
