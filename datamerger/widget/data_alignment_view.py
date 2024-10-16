@@ -109,7 +109,7 @@ class DataAlignmentView(QtWidgets.QWidget):
 
         # Prepare the other data in a background thread.
         self.__other_data = other_data
-        self.__manipulate_other_data()
+        self.__recreate_other_data_pixmap_item(QtCore.QPoint(0, 0))
 
         # If QGraphicsView.sceneRect is unset the view shows the area described
         # by QGraphicsScene.sceneRect. If that is unset the scene's rect is
@@ -127,18 +127,29 @@ class DataAlignmentView(QtWidgets.QWidget):
         scale = 2 ** (event.angleDelta().y() / 360.0)
         self.__graphics_view.scale(scale, scale)
 
-    def __manipulate_other_data(self) -> None:
+    def __recreate_other_data_pixmap_item(self, position: QtCore.QPoint) -> None:
+        """(Re)calculates the manipulated other data, creates an associated
+            pixmap item, and shows it in the graphics view.
+
+        If a pixmap item already exists it is removed.
+
+        :param position: Where to place the resulting pixmap item.
+        """
+
+        def on_data_manipulator_success(other_data_manipulated: np.ndarray):
+            self.__on_data_manipulator_success(other_data_manipulated, position)
+
         assert self.__laser is not None and self.__other_data is not None
         data_manipulator = DataManipulator(
             self.__laser, self.__rotation, self.__other_data
         )
-        data_manipulator.signals.success.connect(self.__on_data_manipulator_success)
+        data_manipulator.signals.success.connect(on_data_manipulator_success)
         QtCore.QThreadPool.globalInstance().start(data_manipulator)
 
-    def __on_data_manipulator_success(self, other_data_manipulated: np.ndarray) -> None:
-        pos = QtCore.QPointF(0, 0)
+    def __on_data_manipulator_success(
+        self, other_data_manipulated: np.ndarray, position: QtCore.QPoint
+    ) -> None:
         if self.__other_data_pixmap_item is not None:
-            pos = self.__other_data_pixmap_item.pos()
             self.__scene.removeItem(self.__other_data_pixmap_item)
 
         self.__other_data_manipulated = other_data_manipulated
@@ -149,13 +160,26 @@ class DataAlignmentView(QtWidgets.QWidget):
             QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable
         )
         self.__other_data_pixmap_item.setOpacity(0.5)
-        self.__other_data_pixmap_item.setPos(pos)
+        self.__other_data_pixmap_item.setPos(position.toPointF())
         self.__on_aligned_data_changed()
 
     @QtCore.Slot()
     def __on_rotate_clicked(self) -> None:
+        # If a pixmap item doesn't already exist DataManipulator is probably
+        # running and we should wait until that's finished before rotating.
+        if self.__other_data_pixmap_item is None:
+            return
+
         self.__rotation = (self.__rotation + 1) % 4
-        self.__manipulate_other_data()
+
+        # Calculate the position of the new pixmap item such that it rotates
+        # around its centre (as opposed to keeping the top-left corner fixed).
+        position = self.__other_data_pixmap_item.pos().toPoint()
+        width, height = cast(
+            Tuple[int, int], self.__other_data_pixmap_item.pixmap().size().toTuple()
+        )
+        new_position = position + QtCore.QPoint(width - height, height - width) * 0.5
+        self.__recreate_other_data_pixmap_item(new_position)
 
     @property
     def __scene(self) -> QtWidgets.QGraphicsScene:
