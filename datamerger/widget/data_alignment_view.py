@@ -26,6 +26,7 @@ class DataAlignmentView(QtWidgets.QWidget):
         self.__on_aligned_data_changed = on_aligned_data_changed
 
         rotate_button = QtWidgets.QPushButton("Rotate", self)
+        rotate_button.clicked.connect(self.__on_rotate_clicked)
         rotate_button.setAutoDefault(False)
 
         # Lay out toolbar items horizontally.
@@ -108,9 +109,7 @@ class DataAlignmentView(QtWidgets.QWidget):
 
         # Prepare the other data in a background thread.
         self.__other_data = other_data
-        data_manipulator = DataManipulator(laser, 0, other_data)
-        data_manipulator.signals.success.connect(self.__on_data_manipulator_success)
-        QtCore.QThreadPool.globalInstance().start(data_manipulator)
+        self.__manipulate_other_data()
 
         # If QGraphicsView.sceneRect is unset the view shows the area described
         # by QGraphicsScene.sceneRect. If that is unset the scene's rect is
@@ -128,7 +127,20 @@ class DataAlignmentView(QtWidgets.QWidget):
         scale = 2 ** (event.angleDelta().y() / 360.0)
         self.__graphics_view.scale(scale, scale)
 
+    def __manipulate_other_data(self) -> None:
+        assert self.__laser is not None and self.__other_data is not None
+        data_manipulator = DataManipulator(
+            self.__laser, self.__rotation, self.__other_data
+        )
+        data_manipulator.signals.success.connect(self.__on_data_manipulator_success)
+        QtCore.QThreadPool.globalInstance().start(data_manipulator)
+
     def __on_data_manipulator_success(self, other_data_manipulated: np.ndarray) -> None:
+        pos = QtCore.QPointF(0, 0)
+        if self.__other_data_pixmap_item is not None:
+            pos = self.__other_data_pixmap_item.pos()
+            self.__scene.removeItem(self.__other_data_pixmap_item)
+
         self.__other_data_manipulated = other_data_manipulated
         self.__other_data_pixmap_item = self.__scene.addPixmap(
             make_pixmap_from_data(other_data_manipulated)
@@ -137,7 +149,13 @@ class DataAlignmentView(QtWidgets.QWidget):
             QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable
         )
         self.__other_data_pixmap_item.setOpacity(0.5)
+        self.__other_data_pixmap_item.setPos(pos)
         self.__on_aligned_data_changed()
+
+    @QtCore.Slot()
+    def __on_rotate_clicked(self) -> None:
+        self.__rotation = (self.__rotation + 1) % 4
+        self.__manipulate_other_data()
 
     @property
     def __scene(self) -> QtWidgets.QGraphicsScene:
