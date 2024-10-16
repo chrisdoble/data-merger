@@ -9,7 +9,7 @@ from datamerger.io.sized_data import SizedData
 from .turbo_color_table import turbo_color_table
 
 
-class DataAlignmentView(QtWidgets.QGraphicsView):
+class DataAlignmentView(QtWidgets.QWidget):
     __laser: Laser | None = None
     __laser_pixmap_item: QtWidgets.QGraphicsPixmapItem | None = None
     __other_data: SizedData | None = None
@@ -21,70 +21,36 @@ class DataAlignmentView(QtWidgets.QGraphicsView):
         on_aligned_data_changed: Callable[[], None],
         parent: QtWidgets.QWidget | None = None,
     ):
-        super().__init__(QtWidgets.QGraphicsScene(parent), parent)
+        super().__init__(parent)
 
         self.__on_aligned_data_changed = on_aligned_data_changed
 
-        self.setBackgroundBrush(QtCore.Qt.GlobalColor.black)
-        self.setMinimumSize(640, 480)
-        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        rotate_button = QtWidgets.QPushButton("Rotate", self)
+        rotate_button.setAutoDefault(False)
 
-    def clear_data(self) -> None:
-        if self.__laser_pixmap_item:
-            self.scene().removeItem(self.__laser_pixmap_item)
+        # Lay out toolbar items horizontally.
+        toolbar_layout = QtWidgets.QHBoxLayout()
+        toolbar_layout.addWidget(rotate_button)
+        toolbar_layout.addStretch()
 
-        self.__laser = None
-        self.__laser_pixmap_item = None
-
-        if self.__other_data_pixmap_item:
-            self.scene().removeItem(self.__other_data_pixmap_item)
-
-        self.__other_data = None
-        self.__other_data_manipulated = None
-        self.__other_data_pixmap_item = None
-
-    def set_data(self, laser: Laser, other_data: SizedData) -> None:
-        self.clear_data()
-
-        # Render the elemental data in a fixed position.
-        self.__laser = laser
-        elemental_data = laser.get(laser.elements[0])
-        elemental_pixmap = make_pixmap_from_data(elemental_data)
-        self.__laser_pixmap_item = self.scene().addPixmap(elemental_pixmap)
-
-        # Prepare the other data in a background thread.
-        self.__other_data = other_data
-        data_manipulator = DataManipulator(laser, -1, other_data)
-        data_manipulator.signals.success.connect(self.__on_data_manipulator_success)
-        QtCore.QThreadPool.globalInstance().start(data_manipulator)
-
-        # If QGraphicsView.sceneRect is unset the view shows the area described
-        # by QGraphicsScene.sceneRect. If that is unset the scene's rect is
-        # equal to the smallest bounding box that contains all items that have
-        # been added to the scene since it was created. In that scenario, as we
-        # drag items around the scene the scene's rect grows and the view pans
-        # to contain it. This behaviour is strange, so here we set the view's
-        # scene rect to its initial value, preventing it from panning on drag.
-        self.setSceneRect(self.scene().sceneRect())
-
-    def wheelEvent(self, event: QtGui.QWheelEvent):
-        self.setTransformationAnchor(
-            QtWidgets.QGraphicsView.ViewportAnchor.AnchorUnderMouse
+        # Set up the graphics view.
+        graphics_view = QtWidgets.QGraphicsView(QtWidgets.QGraphicsScene(self), self)
+        graphics_view.setBackgroundBrush(QtCore.Qt.GlobalColor.black)
+        graphics_view.setMinimumSize(640, 480)
+        graphics_view.setHorizontalScrollBarPolicy(
+            QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff
         )
-        scale = 2 ** (event.angleDelta().y() / 360.0)
-        self.scale(scale, scale)
+        graphics_view.setVerticalScrollBarPolicy(
+            QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        self.__graphics_view = graphics_view
 
-    def __on_data_manipulator_success(self, other_data_manipulated: np.ndarray) -> None:
-        self.__other_data_manipulated = other_data_manipulated
-        self.__other_data_pixmap_item = self.scene().addPixmap(
-            make_pixmap_from_data(other_data_manipulated)
-        )
-        self.__other_data_pixmap_item.setFlags(
-            QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable
-        )
-        self.__other_data_pixmap_item.setOpacity(0.5)
-        self.__on_aligned_data_changed()
+        # Place the toolbar above the graphics view.
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addLayout(toolbar_layout)
+        layout.addWidget(self.__graphics_view)
+        layout.setSpacing(0)
+        self.setLayout(layout)
 
     @property
     def aligned_data(self) -> np.ndarray | None:
@@ -116,6 +82,66 @@ class DataAlignmentView(QtWidgets.QGraphicsView):
         ] = overlap
 
         return aligned_data
+
+    def clear_data(self) -> None:
+        if self.__laser_pixmap_item:
+            self.__scene.removeItem(self.__laser_pixmap_item)
+
+        self.__laser = None
+        self.__laser_pixmap_item = None
+
+        if self.__other_data_pixmap_item:
+            self.__scene.removeItem(self.__other_data_pixmap_item)
+
+        self.__other_data = None
+        self.__other_data_manipulated = None
+        self.__other_data_pixmap_item = None
+
+    def set_data(self, laser: Laser, other_data: SizedData) -> None:
+        self.clear_data()
+
+        # Render the elemental data in a fixed position.
+        self.__laser = laser
+        elemental_data = laser.get(laser.elements[0])
+        elemental_pixmap = make_pixmap_from_data(elemental_data)
+        self.__laser_pixmap_item = self.__scene.addPixmap(elemental_pixmap)
+
+        # Prepare the other data in a background thread.
+        self.__other_data = other_data
+        data_manipulator = DataManipulator(laser, 0, other_data)
+        data_manipulator.signals.success.connect(self.__on_data_manipulator_success)
+        QtCore.QThreadPool.globalInstance().start(data_manipulator)
+
+        # If QGraphicsView.sceneRect is unset the view shows the area described
+        # by QGraphicsScene.sceneRect. If that is unset the scene's rect is
+        # equal to the smallest bounding box that contains all items that have
+        # been added to the scene since it was created. In that scenario, as we
+        # drag items around the scene the scene's rect grows and the view pans
+        # to contain it. This behaviour is strange, so here we set the view's
+        # scene rect to its initial value, preventing it from panning on drag.
+        self.__graphics_view.setSceneRect(self.__scene.sceneRect())
+
+    def wheelEvent(self, event: QtGui.QWheelEvent):
+        self.__graphics_view.setTransformationAnchor(
+            QtWidgets.QGraphicsView.ViewportAnchor.AnchorUnderMouse
+        )
+        scale = 2 ** (event.angleDelta().y() / 360.0)
+        self.__graphics_view.scale(scale, scale)
+
+    def __on_data_manipulator_success(self, other_data_manipulated: np.ndarray) -> None:
+        self.__other_data_manipulated = other_data_manipulated
+        self.__other_data_pixmap_item = self.__scene.addPixmap(
+            make_pixmap_from_data(other_data_manipulated)
+        )
+        self.__other_data_pixmap_item.setFlags(
+            QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable
+        )
+        self.__other_data_pixmap_item.setOpacity(0.5)
+        self.__on_aligned_data_changed()
+
+    @property
+    def __scene(self) -> QtWidgets.QGraphicsScene:
+        return self.__graphics_view.scene()
 
 
 def make_pixmap_from_data(data: np.ndarray) -> QtGui.QPixmap:
