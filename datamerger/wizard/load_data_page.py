@@ -22,36 +22,32 @@ class LoadDataPage(wp.WizardPage):
     fails to load the wizard shows an error and moves to the previous page.
     """
 
-    # Brillouin data loaded from an .xlsx file.
-    __brillouin_data: SizedData | None = None
-
-    # Elemental data loaded from a pew² .npz file.
-    __laser: Laser | None = None
-
-    # Profilometer data loaded from a .txt file.
-    __profilometer_data: SizedData | None = None
-
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
 
-        self.setTitle("Load data")
-        self.setSubTitle("Loading the selected data. This might take a few seconds.")
+        self.__brillouin_data: SizedData | None = None
+        self.__laser: Laser | None = None
+        self.__profilometer_data: SizedData | None = None
 
         # Show an indeterminate progress bar to indicate that something is happening.
         progress_bar = QtWidgets.QProgressBar()
         progress_bar.setMaximum(0)
         progress_bar.setMinimum(0)
 
+        # Vertically centre the progress bar.
         layout = QtWidgets.QVBoxLayout()
         layout.addStretch()
         layout.addWidget(progress_bar)
         layout.addStretch()
+
         self.setLayout(layout)
+        self.setSubTitle("Loading the selected data. This might take a few seconds.")
+        self.setTitle("Load data")
 
     def initializePage(self) -> None:
         # Load all the data in serial to make it easier to handle the case where
         # loading one fails. Otherwise we need to cancel parallel jobs, etc.
-        self.__load_elemental_data()
+        self.__load_brillouin_data()
 
     def cleanupPage(self) -> None:
         self.__brillouin_data = None
@@ -61,6 +57,35 @@ class LoadDataPage(wp.WizardPage):
     def isComplete(self) -> bool:
         # Disable the next button so the user can't move to the next page.
         return False
+
+    @property
+    def brillouin_data(self) -> SizedData | None:
+        return self.__brillouin_data
+
+    @property
+    def elemental_data(self) -> Laser | None:
+        return self.__laser
+
+    @property
+    def profilometer_data(self) -> SizedData | None:
+        return self.__profilometer_data
+
+    def __load_brillouin_data(self) -> None:
+        def on_success(brillouin_data: SizedData | None):
+            self.__brillouin_data = brillouin_data
+            self.__load_elemental_data()
+
+        path = self.get_wizard().brillouin_data_path
+        if path == "":
+            on_success(None)
+            return
+
+        load_brillouin_data = LoadBrillouinData(path)
+        load_brillouin_data.signals.error.connect(
+            self.__make_error_handler("Brillouin")
+        )
+        load_brillouin_data.signals.success.connect(on_success)
+        QtCore.QThreadPool.globalInstance().start(load_brillouin_data)
 
     def __load_elemental_data(self) -> None:
         def on_success(laser: Laser):
@@ -79,7 +104,7 @@ class LoadDataPage(wp.WizardPage):
     def __load_profilometer_data(self) -> None:
         def on_success(profilometer_data: SizedData | None):
             self.__profilometer_data = profilometer_data
-            self.__load_brillouin_data()
+            self.wizard().next()
 
         path = self.get_wizard().profilometer_data_path
         if path == "":
@@ -93,23 +118,6 @@ class LoadDataPage(wp.WizardPage):
         load_profilometer_data.signals.success.connect(on_success)
         QtCore.QThreadPool.globalInstance().start(load_profilometer_data)
 
-    def __load_brillouin_data(self) -> None:
-        def on_success(brillouin_data: SizedData | None):
-            self.__brillouin_data = brillouin_data
-            self.wizard().next()
-
-        path = self.get_wizard().brillouin_data_path
-        if path == "":
-            on_success(None)
-            return
-
-        load_brillouin_data = LoadBrillouinData(path)
-        load_brillouin_data.signals.error.connect(
-            self.__make_error_handler("Brillouin")
-        )
-        load_brillouin_data.signals.success.connect(on_success)
-        QtCore.QThreadPool.globalInstance().start(load_brillouin_data)
-
     def __make_error_handler(self, data_type: str) -> Callable[[], None]:
         def on_error():
             self.wizard().back()
@@ -119,17 +127,24 @@ class LoadDataPage(wp.WizardPage):
 
         return on_error
 
-    @property
-    def brillouin_data(self) -> SizedData | None:
-        return self.__brillouin_data
 
-    @property
-    def elemental_data(self) -> Laser | None:
-        return self.__laser
+class LoadBrillouinData(QtCore.QRunnable):
+    class Signals(QtCore.QObject):
+        error = QtCore.Signal()
+        success = QtCore.Signal(np.ndarray)
 
-    @property
-    def profilometer_data(self) -> SizedData | None:
-        return self.__profilometer_data
+    def __init__(self, path: str) -> None:
+        super().__init__()
+
+        self.signals = self.Signals()
+        self.__path = path
+
+    def run(self) -> None:
+        try:
+            self.signals.success.emit(load_brillouin(self.__path))
+        except:
+            logging.exception(f"Failed to load Brillouin data at {self.__path}")
+            self.signals.error.emit()
 
 
 class LoadElementalData(QtCore.QRunnable):
@@ -167,23 +182,4 @@ class LoadProfilometerData(QtCore.QRunnable):
             self.signals.success.emit(load_profilometer(self.__path))
         except:
             logging.exception(f"Failed to load profilometer data at {self.__path}")
-            self.signals.error.emit()
-
-
-class LoadBrillouinData(QtCore.QRunnable):
-    class Signals(QtCore.QObject):
-        error = QtCore.Signal()
-        success = QtCore.Signal(np.ndarray)
-
-    def __init__(self, path: str) -> None:
-        super().__init__()
-
-        self.signals = self.Signals()
-        self.__path = path
-
-    def run(self) -> None:
-        try:
-            self.signals.success.emit(load_brillouin(self.__path))
-        except:
-            logging.exception(f"Failed to load Brillouin data at {self.__path}")
             self.signals.error.emit()

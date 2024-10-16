@@ -25,29 +25,25 @@ class Wizard(QtWidgets.QWizard):
     # Page IDs
     __select_data_page_id = 0
     __load_data_page_id = 1
-    __align_profilometer_data_page_id = 2
-    __align_brillouin_data_page_id = 3
+    __align_brillouin_data_page_id = 2
+    __align_profilometer_data_page_id = 3
     __output_page_id = 4
     __done_page_id = 5
-
-    # The previous page ID. Used to detect if we're moving back to the load data
-    # page, in which case we should continue back to the select data page.
-    __previous_page_id = __select_data_page_id
 
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
 
-        # Observe when the page changes so we can move back past the load data
-        # page when necessary. See __on_current_id_changed for more details.
+        # See __on_current_id_changed for more information.
+        self.__previous_page_id = self.__select_data_page_id
         self.currentIdChanged.connect(self.__on_current_id_changed)
 
         # Add pages.
         self.setPage(self.__select_data_page_id, sdp.SelectDataPage())
         self.setPage(self.__load_data_page_id, ldp.LoadDataPage())
+        self.setPage(self.__align_brillouin_data_page_id, abdp.AlignBrillouinDataPage())
         self.setPage(
             self.__align_profilometer_data_page_id, apdp.AlignProfilometerDataPage()
         )
-        self.setPage(self.__align_brillouin_data_page_id, abdp.AlignBrillouinDataPage())
         self.setPage(self.__output_page_id, op.OutputPage())
         self.setPage(self.__done_page_id, dp.DonePage())
 
@@ -68,13 +64,13 @@ class Wizard(QtWidgets.QWizard):
                 self.__select_data_page_id,
                 self.__load_data_page_id,
                 (
-                    self.__align_profilometer_data_page_id
-                    if self.profilometer_data_path != ""
+                    self.__align_brillouin_data_page_id
+                    if self.brillouin_data_path != ""
                     else None
                 ),
                 (
-                    self.__align_brillouin_data_page_id
-                    if self.brillouin_data_path != ""
+                    self.__align_profilometer_data_page_id
+                    if self.profilometer_data_path != ""
                     else None
                 ),
                 self.__output_page_id,

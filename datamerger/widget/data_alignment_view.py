@@ -10,12 +10,6 @@ from .turbo_color_table import turbo_color_table
 
 
 class DataAlignmentView(QtWidgets.QWidget):
-    __laser: Laser | None = None
-    __laser_pixmap_item: QtWidgets.QGraphicsPixmapItem | None = None
-    __other_data: SizedData | None = None
-    __other_data_manipulated: np.ndarray | None = None
-    __other_data_pixmap_item: QtWidgets.QGraphicsPixmapItem | None = None
-
     def __init__(
         self,
         on_aligned_data_changed: Callable[[], None],
@@ -23,6 +17,12 @@ class DataAlignmentView(QtWidgets.QWidget):
     ):
         super().__init__(parent)
 
+        self.__laser: Laser | None = None
+        self.__laser_pixmap_item: QtWidgets.QGraphicsPixmapItem | None = None
+        self.__rotation: int = 0
+        self.__other_data: SizedData | None = None
+        self.__other_data_manipulated: np.ndarray | None = None
+        self.__other_data_pixmap_item: QtWidgets.QGraphicsPixmapItem | None = None
         self.__on_aligned_data_changed = on_aligned_data_changed
 
         rotate_button = QtWidgets.QPushButton("Rotate", self)

@@ -1,11 +1,13 @@
 SHELL := bash -eu
 
 .PHONY: package
-package: dist/main.app
+package: type_check
+	pyinstaller --noconfirm main.spec
 
-.PONY: clean
+.PHONY: type_check
+type_check:
+	mypy main.py datamerger
+
+.PHONY: clean
 clean:
 	rm -fr build dist
-
-dist/main.app: main.py main.spec
-	pyinstaller --noconfirm main.spec

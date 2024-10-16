@@ -19,12 +19,12 @@ class AlignProfilometerDataPage(wp.WizardPage):
             lambda: self.completeChanged.emit(), self
         )
 
-        self.__layout = QtWidgets.QVBoxLayout()
-        self.__layout.addWidget(self.__data_alignment_view)
-        self.setLayout(self.__layout)
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.__data_alignment_view)
 
-        self.setTitle("Align profilometer data")
+        self.setLayout(layout)
         self.setSubTitle("Align the profilometer data with the elemental data.")
+        self.setTitle("Align profilometer data")
 
     def initializePage(self) -> None:
         elemental_data = self.get_wizard().elemental_data

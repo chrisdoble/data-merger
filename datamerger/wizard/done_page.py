@@ -11,10 +11,9 @@ class DonePage(wp.WizardPage):
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
 
-        self.setTitle("Done")
-        self.setSubTitle("Your file has been saved.")
-
         self.setLayout(QtWidgets.QVBoxLayout())
+        self.setSubTitle("Your file has been saved.")
+        self.setTitle("Done")
 
     def initializePage(self) -> None:
         try:
