@@ -18,6 +18,8 @@ class DataAlignmentView(QtWidgets.QWidget):
         super().__init__(parent)
 
         self.__element: str | None = None
+        self.__element_size: float = 1
+        self.__element_sizes: list[float] = []
         self.__laser: Laser | None = None
         self.__laser_pixmap_item: QtWidgets.QGraphicsPixmapItem | None = None
         self.__other_data: SizedData | None = None
@@ -31,6 +33,11 @@ class DataAlignmentView(QtWidgets.QWidget):
             self.__on_element_combo_box_current_index_changed
         )
 
+        self.__element_size_combo_box = QtWidgets.QComboBox(self)
+        self.__element_size_combo_box.currentIndexChanged.connect(
+            self.__on_element_size_combo_box_current_index_changed
+        )
+
         self.__rotate_button = QtWidgets.QPushButton("Rotate", self)
         self.__rotate_button.clicked.connect(self.__on_rotate_clicked)
         self.__rotate_button.setAutoDefault(False)
@@ -39,12 +46,14 @@ class DataAlignmentView(QtWidgets.QWidget):
         # Lay out toolbar items horizontally.
         toolbar_layout = QtWidgets.QHBoxLayout()
         toolbar_layout.addWidget(self.__element_combo_box)
+        toolbar_layout.addWidget(self.__element_size_combo_box)
         toolbar_layout.addWidget(self.__rotate_button)
         toolbar_layout.addStretch()
 
         # Set up the graphics view.
         graphics_view = QtWidgets.QGraphicsView(QtWidgets.QGraphicsScene(self), self)
         graphics_view.setBackgroundBrush(QtCore.Qt.GlobalColor.black)
+        graphics_view.setDragMode(QtWidgets.QGraphicsView.DragMode.ScrollHandDrag)
         graphics_view.setMinimumSize(640, 480)
         graphics_view.setHorizontalScrollBarPolicy(
             QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff
@@ -118,6 +127,17 @@ class DataAlignmentView(QtWidgets.QWidget):
         self.__laser = laser
         self.__recreate_laser_pixmap_item()
 
+        # Update the element size controls.
+        self.__element_size = other_data.element_size
+        self.__element_sizes = sorted(set([5, 10, 20, 50, other_data.element_size]))
+        self.__element_size_combo_box.clear()
+        self.__element_size_combo_box.addItems(
+            [f"{size} µm" for size in self.__element_sizes]
+        )
+        self.__element_size_combo_box.setCurrentIndex(
+            self.__element_sizes.index(other_data.element_size)
+        )
+
         # Prepare the other data in a background thread.
         self.__other_data = other_data
         self.__recreate_other_data_pixmap_item(QtCore.QPoint(0, 0))
@@ -139,9 +159,11 @@ class DataAlignmentView(QtWidgets.QWidget):
         self.__graphics_view.scale(scale, scale)
 
     def __disable_controls(self) -> None:
+        self.__element_size_combo_box.setEnabled(False)
         self.__rotate_button.setEnabled(False)
 
     def __enable_controls(self) -> None:
+        self.__element_size_combo_box.setEnabled(True)
         self.__rotate_button.setEnabled(True)
 
     def __on_data_manipulator_success(
@@ -172,6 +194,25 @@ class DataAlignmentView(QtWidgets.QWidget):
         self.__recreate_laser_pixmap_item()
 
     @QtCore.Slot()
+    def __on_element_size_combo_box_current_index_changed(self, index: int) -> None:
+        if len(self.__element_sizes) == 0 or self.__other_data_pixmap_item is None:
+            return
+
+        self.__element_size = self.__element_sizes[index]
+
+        # We want to disable controls that can cause recalculation of the other
+        # data, and the wizard's next button until recalculation is complete. To
+        # disable the next button we clear __other_data_manipulated which causes
+        # aligned_data to return None, which in turn disables the next button.
+        self.__disable_controls()
+        self.__other_data_manipulated = None
+        self.__on_aligned_data_changed()
+
+        self.__recreate_other_data_pixmap_item(
+            self.__other_data_pixmap_item.pos().toPoint()
+        )
+
+    @QtCore.Slot()
     def __on_rotate_clicked(self) -> None:
         # If a pixmap item doesn't already exist DataManipulator is probably
         # running and we should wait until that's finished before rotating.
@@ -180,10 +221,7 @@ class DataAlignmentView(QtWidgets.QWidget):
 
         self.__rotation = (self.__rotation + 1) % 4
 
-        # We want to disable controls that can cause recalculation of the other
-        # data, and the wizard's next button until recalculation is complete. To
-        # disable the next button we clear __other_data_manipulated which causes
-        # aligned_data to return None, which in turn disables the next button.
+        # See the comment in __on_element_size_combo_box_current_index_changed.
         self.__disable_controls()
         self.__other_data_manipulated = None
         self.__on_aligned_data_changed()
@@ -219,7 +257,7 @@ class DataAlignmentView(QtWidgets.QWidget):
 
         assert self.__laser is not None and self.__other_data is not None
         data_manipulator = DataManipulator(
-            self.__laser, self.__rotation, self.__other_data
+            self.__element_size, self.__laser, self.__rotation, self.__other_data
         )
         data_manipulator.signals.success.connect(on_data_manipulator_success)
         QtCore.QThreadPool.globalInstance().start(data_manipulator)
@@ -269,9 +307,13 @@ class DataManipulator(QtCore.QRunnable):
     class Signals(QtCore.QObject):
         success = QtCore.Signal(np.ndarray)
 
-    def __init__(self, laser: Laser, rotation: int, sized_data: SizedData) -> None:
+    def __init__(
+        self, element_size: float, laser: Laser, rotation: int, sized_data: SizedData
+    ) -> None:
         """Initialise the instance.
 
+        :param element_size: The element size to use instead of
+            sized_data.element_size.
         :param laser: The laser data to align with.
         :param rotation: The amount to rotate the data. Each unit corresponds to
             a counter-clockwise rotation of 90 degrees, e.g. 1 is 90, -1 is -90.
@@ -280,6 +322,7 @@ class DataManipulator(QtCore.QRunnable):
         """
         super().__init__()
 
+        self.__element_size = element_size
         self.__laser = laser
         self.__rotation = rotation
         self.signals = self.Signals()
@@ -295,7 +338,7 @@ class DataManipulator(QtCore.QRunnable):
         # Resample the image so it has the same resolution as the laser data.
         data = sp.ndimage.zoom(
             data,
-            self.__sized_data.element_size / self.__laser.config.get_pixel_width(),
+            self.__element_size / self.__laser.config.get_pixel_width(),
         )
 
         self.signals.success.emit(data)
