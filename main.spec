@@ -1,20 +1,22 @@
 a = Analysis(
     ["main.py"],
-    binaries=None,
-    datas=None,
+    binaries=[],
+    datas=[],
     excludes=[],
     hiddenimports=[],
     hooksconfig={},
-    hookspath=None,
+    hookspath=[],
     noarchive=False,
     optimize=0,
     pathex=[],
-    runtime_hooks=None,
+    runtime_hooks=[],
 )
 pyz = PYZ(a.pure)
 exe = EXE(
     pyz,
     a.scripts,
+    a.binaries,
+    a.datas,
     [],
     argv_emulation=False,
     bootloader_ignore_signals=False,
@@ -23,19 +25,16 @@ exe = EXE(
     debug=False,
     disable_windowed_traceback=False,
     entitlements_file=None,
-    exclude_binaries=True,
     name="main",
+    runtime_tmpdir=None,
     strip=False,
     target_arch=None,
-    upx=True,
-)
-coll = COLLECT(
-    exe,
-    a.binaries,
-    a.datas,
-    name="main",
-    strip=False,
     upx_exclude=[],
     upx=True,
 )
-app = BUNDLE(coll, bundle_identifier=None, icon=None, name="main.app")
+app = BUNDLE(
+    exe,
+    bundle_identifier=None,
+    icon=None,
+    name="main.app",
+)
