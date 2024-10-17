@@ -56,6 +56,7 @@ class Wizard(QtWidgets.QWizard):
             | QtWidgets.QWizard.WizardOption.NoCancelButton
         )
         self.setWindowTitle(config.PROGRAM_NAME)
+        self.setWizardStyle(QtWidgets.QWizard.WizardStyle.ClassicStyle)
 
     def nextId(self) -> int:
         page_ids = [
