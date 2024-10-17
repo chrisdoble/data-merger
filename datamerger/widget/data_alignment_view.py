@@ -142,14 +142,11 @@ class DataAlignmentView(QtWidgets.QWidget):
         self.__other_data = other_data
         self.__recreate_other_data_pixmap_item(QtCore.QPoint(0, 0))
 
-        # If QGraphicsView.sceneRect is unset the view shows the area described
-        # by QGraphicsScene.sceneRect. If that is unset the scene's rect is
-        # equal to the smallest bounding box that contains all items that have
-        # been added to the scene since it was created. In that scenario, as we
-        # drag items around the scene the scene's rect grows and the view pans
-        # to contain it. This behaviour is strange, so here we set the view's
-        # scene rect to its initial value, preventing it from panning on drag.
-        self.__graphics_view.setSceneRect(self.__scene.sceneRect())
+        # Center on the elemental data and reset the zoom.
+        self.__graphics_view.setSceneRect(
+            QtCore.QRectF(0, 0, laser.shape[1], laser.shape[0])
+        )
+        self.__graphics_view.resetTransform()
 
     def wheelEvent(self, event: QtGui.QWheelEvent):
         self.__graphics_view.setTransformationAnchor(
