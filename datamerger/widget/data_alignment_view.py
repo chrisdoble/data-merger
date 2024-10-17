@@ -50,18 +50,7 @@ class DataAlignmentView(QtWidgets.QWidget):
         toolbar_layout.addWidget(self.__rotate_button)
         toolbar_layout.addStretch()
 
-        # Set up the graphics view.
-        graphics_view = QtWidgets.QGraphicsView(QtWidgets.QGraphicsScene(self), self)
-        graphics_view.setBackgroundBrush(QtCore.Qt.GlobalColor.black)
-        graphics_view.setDragMode(QtWidgets.QGraphicsView.DragMode.ScrollHandDrag)
-        graphics_view.setMinimumSize(640, 480)
-        graphics_view.setHorizontalScrollBarPolicy(
-            QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff
-        )
-        graphics_view.setVerticalScrollBarPolicy(
-            QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff
-        )
-        self.__graphics_view = graphics_view
+        self.__graphics_view = GraphicsView(self)
 
         # Place the toolbar above the graphics view.
         layout = QtWidgets.QVBoxLayout(self)
@@ -147,13 +136,6 @@ class DataAlignmentView(QtWidgets.QWidget):
             QtCore.QRectF(0, 0, laser.shape[1], laser.shape[0])
         )
         self.__graphics_view.resetTransform()
-
-    def wheelEvent(self, event: QtGui.QWheelEvent):
-        self.__graphics_view.setTransformationAnchor(
-            QtWidgets.QGraphicsView.ViewportAnchor.AnchorUnderMouse
-        )
-        scale = 2 ** (event.angleDelta().y() / 360.0)
-        self.__graphics_view.scale(scale, scale)
 
     def __disable_controls(self) -> None:
         self.__element_size_combo_box.setEnabled(False)
@@ -262,6 +244,24 @@ class DataAlignmentView(QtWidgets.QWidget):
     @property
     def __scene(self) -> QtWidgets.QGraphicsScene:
         return self.__graphics_view.scene()
+
+
+class GraphicsView(QtWidgets.QGraphicsView):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
+        super().__init__(QtWidgets.QGraphicsScene(parent), parent)
+
+        self.setBackgroundBrush(QtCore.Qt.GlobalColor.black)
+        self.setDragMode(QtWidgets.QGraphicsView.DragMode.ScrollHandDrag)
+        self.setMinimumSize(640, 480)
+        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
+    def wheelEvent(self, event: QtGui.QWheelEvent):
+        self.setTransformationAnchor(
+            QtWidgets.QGraphicsView.ViewportAnchor.AnchorUnderMouse
+        )
+        scale = 2 ** (event.angleDelta().y() / 360.0)
+        self.scale(scale, scale)
 
 
 def make_pixmap_from_data(data: np.ndarray) -> QtGui.QPixmap:
